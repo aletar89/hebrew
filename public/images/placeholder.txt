@@ -1,0 +1,8 @@
+This directory needs the following image files for the Hebrew reading app:
+
+1. abba.png - Picture of a father (for the letter א - Alef)
+2. bayit.png - Picture of a house (for the letter ב - Bet)
+3. gamal.png - Picture of a camel (for the letter ג - Gimel)
+4. dag.png - Picture of a fish (for the letter ד - Dalet)
+
+Please add these image files here. They should be clear, child-friendly illustrations that a 4-year-old can easily recognize. 
