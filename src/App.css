@@ -302,3 +302,53 @@ footer {
 .new-letter-button:active {
   transform: translateY(1px);
 }
+
+/* Loading and error states */
+.letter-match-container.loading,
+.letter-match-container.error {
+  padding: 40px;
+  text-align: center;
+  color: var(--primary-color);
+  font-size: 1.2rem;
+}
+
+.letter-match-container.error {
+  color: var(--error-color);
+}
+
+.letter-match-container.error ul {
+  text-align: left;
+  margin: 20px auto;
+  max-width: 400px;
+  padding-left: 30px;
+}
+
+.letter-match-container.error li {
+  margin-bottom: 10px;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  margin: 20px auto;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spinner 1s ease-in-out infinite;
+}
+
+@keyframes spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.letter-match-container.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}

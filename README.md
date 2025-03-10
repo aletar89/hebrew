@@ -46,12 +46,45 @@ The app currently includes a letter-to-picture matching exercise where:
 
 ## Image Requirements
 
-The app requires images for each Hebrew letter. Place them in the `/public/images/` directory with the following naming convention:
+The app requires images for each Hebrew letter. Place them in the `/public/images/` directory using the following naming convention:
 
-- `abba.png` - for א (Alef) - picture of a father
-- `bayit.png` - for ב (Bet) - picture of a house 
-- `gamal.png` - for ג (Gimel) - picture of a camel
-- `dag.png` - for ד (Dalet) - picture of a fish
+- `aleph1.png`, `aleph2.jpg`, etc. - for the letter א (Aleph)
+- `beth1.webp`, `beth2.gif`, etc. - for the letter ב (Beth)
+- `gimel1.svg`, `gimel2.png`, etc. - for the letter ג (Gimel)
+- `daleth1.jpeg`, `daleth2.jpg`, etc. - for the letter ד (Dalet)
+
+### Supported Image Formats:
+- png, jpg, jpeg, gif, svg, webp, and other standard web image formats
+
+### Supported Hebrew Letter Names:
+- aleph (א)
+- beth (ב)
+- gimel (ג)
+- daleth (ד)
+- he (ה)
+- vav (ו)
+- zayin (ז)
+- heth (ח)
+- teth (ט)
+- yod (י)
+- kaph (כ)
+- lamed (ל)
+- mem (מ)
+- nun (נ)
+- samekh (ס)
+- ayin (ע)
+- pe (פ)
+- tsadi (צ)
+- qoph (ק)
+- resh (ר)
+- shin (ש)
+- tav (ת)
+
+### Features:
+- The app automatically detects available images and only uses letters that have images
+- You can add multiple images for each letter (using different numbers), and the app will randomly select them during gameplay
+- Multiple image formats are supported (png, jpg, jpeg, gif, svg, webp)
+- Images should be clear, child-friendly illustrations that a 4-year-old can easily recognize
 
 ## Development Roadmap
 
