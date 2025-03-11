@@ -11,16 +11,7 @@ enum ExerciseType {
 function App() {
   return (
     <div className="app-container">
-      <header>
-        <h1>לומדים לקרוא עברית</h1>
-        <h2>Learning to Read Hebrew</h2>
-      </header>
-      <main>
-        <LetterPictureMatch />
-      </main>
-      <footer>
-        <p>Created with ❤️ for learning Hebrew</p>
-      </footer>
+      <LetterPictureMatch />
     </div>
   )
 }
@@ -308,11 +299,7 @@ function LetterPictureMatch() {
       </div>
       
       <div className="score-display">
-        <div className="stars">
-          {[...Array(score)].map((_, i) => (
-            <span key={i} className="star">⭐</span>
-          ))}
-        </div>
+        <div className="score-number">Score: {score}</div>
       </div>
       
       {currentLetter && correctImageItem && (
@@ -373,25 +360,16 @@ function LetterPictureMatch() {
             </>
           )}
           
-          {isCorrect !== null && (
-            <div className={`feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
-              {isCorrect 
-                ? 'נכון! כל הכבוד! 🎉' 
-                : (
-                  <>
-                    נסה שוב! אתה יכול! 🤗
-                    <div className="helper-hint">
-                      {exerciseType === ExerciseType.LETTER_TO_PICTURE ? (
-                        <>Find the picture that starts with <span className="big-letter">{currentLetter}</span></>
-                      ) : (
-                        <>Find the letter for this picture: <span className="big-letter">{currentLetter}</span></>
-                      )}
-                    </div>
-                  </>
-                )
-              }
-            </div>
-          )}
+          <div className="feedback-container">
+            {isCorrect !== null && (
+              <div className={`feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
+                {isCorrect 
+                  ? '🎉 !נכון! כל הכבוד' 
+                  : '🤗 !נסה שוב! אתה יכול'
+                }
+              </div>
+            )}
+          </div>
           
           <button 
             className="new-letter-button"
