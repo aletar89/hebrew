@@ -24,12 +24,16 @@ export const hebrewLetterMap: Record<string, string> = {
   tav: 'ת'
 };
 
+// Map of Hebrew characters to their transliterated names
+export const hebrewCharToName: Record<string, string> = Object.entries(hebrewLetterMap)
+  .reduce((acc, [name, char]) => ({ ...acc, [char]: name }), {});
+
 // Words/meanings for each letter if we want to provide suggestions
 export const letterWordSuggestions: Record<string, string[]> = {
-  aleph: ['אבא (Father)', 'אריה (Lion)', 'אוטו (Car)'],
-  beth: ['בית (House)', 'בננה (Banana)', 'בלון (Balloon)'],
-  gimel: ['גמל (Camel)', 'גלידה (Ice Cream)', 'גן (Garden)'],
-  daleth: ['דג (Fish)', 'דלת (Door)', 'דבורה (Bee)'],
+  aleph: ['אבא', 'אריה', 'אוטו'],
+  beth: ['בית', 'בננה', 'בלון'],
+  gimel: ['גמל', 'גלידה', 'גן'],
+  daleth: ['דג', 'דלת', 'דבורה'],
   // Add more as needed
 };
 
@@ -37,50 +41,8 @@ export interface HebrewLetterItem {
   letter: string;      // Hebrew character
   letterName: string;  // Transliterated name (aleph, beth, etc.)
   imageUrl: string;    // Path to the image
+  word: string;        // The Hebrew word (filename without extension)
 }
-
-// Parse a filename to extract the letter name and number
-// Example: "aleph1.png" -> { letterName: "aleph", number: 1 }
-const parseImageFilename = (filename: string): { letterName: string, number: number } | null => {
-  // Match letter name followed by a number and then any image extension
-  // This regex is more flexible with file extensions
-  const match = filename.match(/^([a-z]+)(\d+)\.([a-z0-9]+)$/i);
-  
-  if (match) {
-    const letterName = match[1].toLowerCase();
-    const number = parseInt(match[2], 10);
-    
-    // Check if the letter name is valid
-    if (hebrewLetterMap[letterName]) {
-      return { letterName, number };
-    }
-  }
-  
-  return null;
-};
-
-// Scan available images and organize them by letter
-export const getAvailableHebrewLetters = async (imageFilenames: string[]): Promise<HebrewLetterItem[]> => {
-  const letterItems: HebrewLetterItem[] = [];
-  
-  // Process each filename
-  for (const filename of imageFilenames) {
-    const parsed = parseImageFilename(filename);
-    
-    if (parsed) {
-      const { letterName } = parsed;
-      const letter = hebrewLetterMap[letterName];
-      
-      letterItems.push({
-        letter,
-        letterName,
-        imageUrl: `/images/${filename}`
-      });
-    }
-  }
-  
-  return letterItems;
-};
 
 // Helper function to check if an image exists by actually loading it
 const imageExists = (url: string): Promise<boolean> => {
@@ -92,40 +54,81 @@ const imageExists = (url: string): Promise<boolean> => {
   });
 };
 
-// Helper function to simulate scanning a directory for image files
-export const getAvailableImageFilenames = async (): Promise<string[]> => {
-  // For production, you would replace this with an API call or build-time process
-  // to list all files in the images directory
+// Helper function to get the first character of a Hebrew word
+const getFirstCharacter = (word: string): string | null => {
+  if (word && word.length > 0) {
+    return word.charAt(0);
+  }
+  return null;
+};
+
+// Scan available images and organize them by letter
+export const getAvailableHebrewLetters = async (imageFilenames: string[]): Promise<HebrewLetterItem[]> => {
+  const letterItems: HebrewLetterItem[] = [];
   
-  // Let's test only a reasonable number of combinations to avoid too many network requests
-  const testImages: string[] = [];
-  const fileExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'];
-  
-  // Generate test image names for each letter
-  for (const letterName of Object.keys(hebrewLetterMap)) {
-    // Try only the first 3 numbers for each letter for performance reasons
-    for (let i = 1; i <= 3; i++) {
-      for (const ext of fileExtensions) {
-        testImages.push(`${letterName}${i}.${ext}`);
+  // Process each filename
+  for (const filename of imageFilenames) {
+    try {
+      // Extract the word (filename without extension)
+      const wordMatch = filename.match(/^(.+)\.(png|jpg|jpeg|gif|svg|webp)$/i);
+      
+      if (wordMatch) {
+        const word = wordMatch[1];
+        const firstChar = getFirstCharacter(word);
+        
+        // Check if the first character is a valid Hebrew letter
+        if (firstChar && hebrewCharToName[firstChar]) {
+          letterItems.push({
+            letter: firstChar,
+            letterName: hebrewCharToName[firstChar],
+            imageUrl: `/images/${filename}`,
+            word
+          });
+        }
       }
+    } catch (error) {
+      console.error(`Error processing filename: ${filename}`, error);
     }
   }
   
-  console.log('Testing for image files, please wait...');
+  return letterItems;
+};
+
+// Helper function to get a list of image files
+export const getAvailableImageFilenames = async (): Promise<string[]> => {
+  // In a production environment, this would be an API call to list files
+  // For now, we'll simulate with a check of common image formats
   
-  // Check which images actually exist
+  console.log('Testing for Hebrew-named image files, please wait...');
+  
+  // Attempt to list files in the directory
+  // For browser environments, we will try to discover them by checking if they exist
+  const testFormats = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'];
+  
+  // Known Hebrew word image files to test for
+  const knownWordImages = [
+    'אדם', 'ארנב', 'אריה', 'אבא', 'אוטו',  // Aleph
+    'בית', 'בננה', 'בקבוק', 'בלון',        // Beth
+    'גמל', 'גלידה', 'גן',                  // Gimel
+    'דג', 'דלת', 'דוב', 'דינוזאור', 'דרקון' // Daleth
+    // Add more common words as necessary
+  ];
+  
   const availableImages: string[] = [];
   
   // Process images in batches to avoid too many concurrent requests
-  const batchSize = 10;
-  for (let i = 0; i < testImages.length; i += batchSize) {
-    const batch = testImages.slice(i, i + batchSize);
-    const results = await Promise.all(
-      batch.map(async (filename) => {
+  const batchSize = 5;
+  for (let i = 0; i < knownWordImages.length; i += batchSize) {
+    const batch = knownWordImages.slice(i, i + batchSize);
+    const batchPromises = batch.flatMap(word => 
+      testFormats.map(async format => {
+        const filename = `${word}.${format}`;
         const exists = await imageExists(`/images/${filename}`);
         return { filename, exists };
       })
     );
+    
+    const results = await Promise.all(batchPromises);
     
     results.forEach(({ filename, exists }) => {
       if (exists) {
@@ -140,7 +143,7 @@ export const getAvailableImageFilenames = async (): Promise<string[]> => {
 
 // Get letter items grouped by letter for easier game logic
 export const getGroupedLetterItems = async (): Promise<Record<string, HebrewLetterItem[]>> => {
-  // Get filenames (in a real app, this would scan the directory)
+  // Get filenames
   const filenames = await getAvailableImageFilenames();
   
   // Get letter items from valid filenames

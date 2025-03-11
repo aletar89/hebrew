@@ -116,14 +116,15 @@ footer {
 
 .option {
   width: 180px;
-  height: 200px;
+  height: 180px;
   padding: 15px;
   background-color: #fff;
-  border: 2px solid var(--secondary-color);
+  border: 3px solid var(--secondary-color);
   border-radius: var(--border-radius);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -135,10 +136,9 @@ footer {
 }
 
 .option-image {
-  width: 140px;
-  height: 140px;
+  width: 150px;
+  height: 150px;
   object-fit: contain;
-  margin-bottom: 10px;
 }
 
 .option-word {
@@ -199,13 +199,13 @@ footer {
   
   .option {
     width: 140px;
-    height: 160px;
+    height: 140px;
     padding: 10px;
   }
   
   .option-image {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
   }
   
   .current-letter {
@@ -269,10 +269,21 @@ footer {
   100% { transform: scale(1); }
 }
 
+/* Feedback for correct and incorrect options */
 .option.correct-option {
   border-color: var(--success-color);
   background-color: rgba(76, 175, 80, 0.1);
   animation: pulse 1s infinite;
+}
+
+.option.highlight-correct {
+  border-color: var(--success-color);
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+}
+
+.option.incorrect-option {
+  border-color: var(--error-color);
+  opacity: 0.7;
 }
 
 @keyframes pulse {
@@ -351,4 +362,105 @@ footer {
   align-items: center;
   justify-content: center;
   min-height: 300px;
+}
+
+.helper-hint {
+  font-size: 0.9rem;
+  margin-top: 5px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.big-letter {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 0 5px;
+  padding: 3px 8px;
+  background-color: white;
+  color: var(--primary-color);
+  border-radius: 8px;
+  display: inline-block;
+}
+
+/* Current image (for picture-to-letter exercise) */
+.current-image {
+  margin: 0 auto 20px;
+  text-align: center;
+}
+
+.target-image {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  border: 3px solid var(--secondary-color);
+  border-radius: var(--border-radius);
+  background-color: white;
+  padding: 10px;
+  box-shadow: var(--box-shadow);
+}
+
+/* Letter options for picture-to-letter exercise */
+.letter-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.letter-option {
+  width: 100px;
+  height: 100px;
+  background-color: #fff;
+  border: 3px solid var(--secondary-color);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.letter-option:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-color);
+}
+
+.letter-text {
+  font-size: 3.5rem;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+/* Responsive styles for new exercise */
+@media (max-width: 768px) {
+  .target-image {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .letter-option {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .letter-text {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .letter-options {
+    gap: 10px;
+  }
+  
+  .letter-option {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .letter-text {
+    font-size: 2rem;
+  }
 }

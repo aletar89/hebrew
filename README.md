@@ -46,43 +46,44 @@ The app currently includes a letter-to-picture matching exercise where:
 
 ## Image Requirements
 
-The app requires images for each Hebrew letter. Place them in the `/public/images/` directory using the following naming convention:
+The app requires images for each Hebrew letter. Place them in the `/public/images/` directory using Hebrew words as filenames:
 
-- `aleph1.png`, `aleph2.jpg`, etc. - for the letter א (Aleph)
-- `beth1.webp`, `beth2.gif`, etc. - for the letter ב (Beth)
-- `gimel1.svg`, `gimel2.png`, etc. - for the letter ג (Gimel)
-- `daleth1.jpeg`, `daleth2.jpg`, etc. - for the letter ד (Dalet)
+- Words starting with א (Aleph): `אדם.png`, `ארנב.jpg`, `אריה.png`
+- Words starting with ב (Beth): `בית.png`, `בננה.jpg`, `בקבוק.png`
+- Words starting with ג (Gimel): `גמל.png`, `גלידה.jpg`, `גן.png`
+- Words starting with ד (Dalet): `דג.png`, `דלת.jpg`, `דוב.png`
 
 ### Supported Image Formats:
 - png, jpg, jpeg, gif, svg, webp, and other standard web image formats
 
-### Supported Hebrew Letter Names:
-- aleph (א)
-- beth (ב)
-- gimel (ג)
-- daleth (ד)
-- he (ה)
-- vav (ו)
-- zayin (ז)
-- heth (ח)
-- teth (ט)
-- yod (י)
-- kaph (כ)
-- lamed (ל)
-- mem (מ)
-- nun (נ)
-- samekh (ס)
-- ayin (ע)
-- pe (פ)
-- tsadi (צ)
-- qoph (ק)
-- resh (ר)
-- shin (ש)
-- tav (ת)
+### Supported Hebrew Letters:
+- א (Aleph)
+- ב (Beth)
+- ג (Gimel)
+- ד (Dalet)
+- ה (He)
+- ו (Vav)
+- ז (Zayin)
+- ח (Heth)
+- ט (Teth)
+- י (Yod)
+- כ (Kaph)
+- ל (Lamed)
+- מ (Mem)
+- נ (Nun)
+- ס (Samekh)
+- ע (Ayin)
+- פ (Pe)
+- צ (Tsadi)
+- ק (Qoph)
+- ר (Resh)
+- ש (Shin)
+- ת (Tav)
 
 ### Features:
 - The app automatically detects available images and only uses letters that have images
-- You can add multiple images for each letter (using different numbers), and the app will randomly select them during gameplay
+- Images are named with Hebrew words, making it intuitive to manage content
+- Multiple images per letter are supported (just add more words starting with that letter)
 - Multiple image formats are supported (png, jpg, jpeg, gif, svg, webp)
 - Images should be clear, child-friendly illustrations that a 4-year-old can easily recognize
 
@@ -100,3 +101,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+Examples:
+- aleph1.png - An image starting with the letter א (Aleph), e.g., a picture of אבא
+- aleph2.jpg - Another image starting with א, e.g., a picture of אריה
+- beth1.webp - An image starting with the letter ב (Beth), e.g., a picture of בית

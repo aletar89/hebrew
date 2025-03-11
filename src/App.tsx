@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import { HebrewLetterItem, getGroupedLetterItems, letterWordSuggestions } from './utils/imageUtils';
+import { HebrewLetterItem, getGroupedLetterItems } from './utils/imageUtils';
+
+// Define the exercise types
+enum ExerciseType {
+  LETTER_TO_PICTURE = 'letter-to-picture',
+  PICTURE_TO_LETTER = 'picture-to-letter'
+}
 
 function App() {
   return (
@@ -28,9 +34,11 @@ function LetterPictureMatch() {
   const [error, setError] = useState<string | null>(null);
 
   // Game state
+  const [exerciseType, setExerciseType] = useState<ExerciseType>(ExerciseType.LETTER_TO_PICTURE);
   const [currentLetter, setCurrentLetter] = useState<string | null>(null);
   const [correctImageItem, setCorrectImageItem] = useState<HebrewLetterItem | null>(null);
   const [options, setOptions] = useState<HebrewLetterItem[]>([]);
+  const [letterOptions, setLetterOptions] = useState<string[]>([]);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [score, setScore] = useState<number>(0);
   const [attempts, setAttempts] = useState<number>(0);
@@ -89,6 +97,12 @@ function LetterPictureMatch() {
       setError("No Hebrew letter images available. Please add images to the '/public/images/' directory.");
       return;
     }
+
+    // Randomly select exercise type
+    const newExerciseType = Math.random() < 0.5 
+      ? ExerciseType.LETTER_TO_PICTURE 
+      : ExerciseType.PICTURE_TO_LETTER;
+    setExerciseType(newExerciseType);
     
     // Select a random letter
     const randomLetterIndex = Math.floor(Math.random() * lettersWithImages.length);
@@ -103,70 +117,98 @@ function LetterPictureMatch() {
     const selectedImage = letterImages[randomImageIndex];
     setCorrectImageItem(selectedImage);
     
-    // Create options (including the correct one)
-    const optionLetters = [...lettersWithImages];
-    // Remove the correct letter to avoid duplicates
-    optionLetters.splice(randomLetterIndex, 1);
+    // Create letter options (for PICTURE_TO_LETTER mode)
+    const letterOptionsList = [...lettersWithImages];
+    // Ensure the correct letter is not removed in PICTURE_TO_LETTER mode
+    if (newExerciseType === ExerciseType.PICTURE_TO_LETTER) {
+      // Shuffle the letter options
+      for (let i = letterOptionsList.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [letterOptionsList[i], letterOptionsList[j]] = [letterOptionsList[j], letterOptionsList[i]];
+      }
+      
+      // Make sure the correct letter is among the options
+      // Find if the correct letter is already in the first 3 options
+      const correctLetterIndex = letterOptionsList.slice(0, 3).indexOf(selectedLetter);
+      
+      if (correctLetterIndex === -1) {
+        // If not, replace a random option with the correct letter
+        const replaceIndex = Math.floor(Math.random() * Math.min(3, letterOptionsList.length));
+        letterOptionsList[replaceIndex] = selectedLetter;
+      }
+      
+      // Take the first 3 options (or fewer if we don't have enough)
+      setLetterOptions(letterOptionsList.slice(0, Math.min(3, letterOptionsList.length)));
+    }
     
-    // Only proceed with creating options if we have enough letters
-    if (optionLetters.length === 0) {
-      // If we only have one letter, just show multiple images for that letter
-      const incorrectOptions = [];
-      const remainingImages = [...letterImages];
-      remainingImages.splice(randomImageIndex, 1); // Remove the correct image
+    // Create image options (for LETTER_TO_PICTURE mode)
+    if (newExerciseType === ExerciseType.LETTER_TO_PICTURE) {
+      // Create options (including the correct one)
+      const optionLetters = [...lettersWithImages];
+      // Remove the correct letter to avoid duplicates
+      optionLetters.splice(randomLetterIndex, 1);
       
-      // Add up to 2 different images for the same letter if available
-      for (let i = 0; i < Math.min(2, remainingImages.length); i++) {
-        const randomIndex = Math.floor(Math.random() * remainingImages.length);
-        incorrectOptions.push(remainingImages[randomIndex]);
-        remainingImages.splice(randomIndex, 1);
+      // Only proceed with creating options if we have enough letters
+      if (optionLetters.length === 0) {
+        // If we only have one letter, just show multiple images for that letter
+        const incorrectOptions = [];
+        const remainingImages = [...letterImages];
+        remainingImages.splice(randomImageIndex, 1); // Remove the correct image
+        
+        // Add up to 2 different images for the same letter if available
+        for (let i = 0; i < Math.min(2, remainingImages.length); i++) {
+          const randomIndex = Math.floor(Math.random() * remainingImages.length);
+          incorrectOptions.push(remainingImages[randomIndex]);
+          remainingImages.splice(randomIndex, 1);
+        }
+        
+        // Combine correct and incorrect options
+        const allOptions = [selectedImage, ...incorrectOptions];
+        
+        // Shuffle the options
+        for (let i = allOptions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+        }
+        
+        setOptions(allOptions);
+      } else {
+        // Shuffle the remaining letters
+        for (let i = optionLetters.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [optionLetters[i], optionLetters[j]] = [optionLetters[j], optionLetters[i]];
+        }
+        
+        // Take 2 random incorrect letters (or fewer if we don't have enough)
+        const incorrectLetters = optionLetters.slice(0, Math.min(2, optionLetters.length));
+        
+        // Get a random image for each incorrect letter
+        const incorrectOptions = incorrectLetters.map(letter => {
+          const images = groups[letter];
+          const randomIndex = Math.floor(Math.random() * images.length);
+          return images[randomIndex];
+        });
+        
+        // Combine correct and incorrect options
+        const allOptions = [selectedImage, ...incorrectOptions];
+        
+        // Shuffle the options
+        for (let i = allOptions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+        }
+        
+        setOptions(allOptions);
       }
-      
-      // Combine correct and incorrect options
-      const allOptions = [selectedImage, ...incorrectOptions];
-      
-      // Shuffle the options
-      for (let i = allOptions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
-      }
-      
-      setOptions(allOptions);
-    } else {
-      // Shuffle the remaining letters
-      for (let i = optionLetters.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [optionLetters[i], optionLetters[j]] = [optionLetters[j], optionLetters[i]];
-      }
-      
-      // Take 2 random incorrect letters (or fewer if we don't have enough)
-      const incorrectLetters = optionLetters.slice(0, Math.min(2, optionLetters.length));
-      
-      // Get a random image for each incorrect letter
-      const incorrectOptions = incorrectLetters.map(letter => {
-        const images = groups[letter];
-        const randomIndex = Math.floor(Math.random() * images.length);
-        return images[randomIndex];
-      });
-      
-      // Combine correct and incorrect options
-      const allOptions = [selectedImage, ...incorrectOptions];
-      
-      // Shuffle the options
-      for (let i = allOptions.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
-      }
-      
-      setOptions(allOptions);
     }
     
     setIsCorrect(null);
   };
 
-  // Handle when an option is selected
+  // Handle when an image option is selected (for LETTER_TO_PICTURE mode)
   const handleOptionClick = (option: HebrewLetterItem) => {
-    if (isCorrect !== null) return; // Prevent multiple clicks
+    // Only prevent multiple clicks if the answer is already correct
+    if (isCorrect === true) return; 
     
     setAttempts(attempts + 1);
     
@@ -178,16 +220,31 @@ function LetterPictureMatch() {
       setTimeout(() => startNewRound(), 2000);
     } else {
       setIsCorrect(false);
+      
+      // Don't automatically move to the next question on incorrect answer
+      // Let the child try again by clicking on the correct image
     }
   };
 
-  // Get a word suggestion for a given letter
-  const getWordSuggestion = (letterName: string): string => {
-    const suggestions = letterWordSuggestions[letterName];
-    if (suggestions && suggestions.length > 0) {
-      return suggestions[0]; // Just use the first suggestion
+  // Handle when a letter option is selected (for PICTURE_TO_LETTER mode)
+  const handleLetterClick = (letter: string) => {
+    // Only prevent multiple clicks if the answer is already correct
+    if (isCorrect === true) return; 
+    
+    setAttempts(attempts + 1);
+    
+    if (currentLetter && letter === currentLetter) {
+      setIsCorrect(true);
+      setScore(score + 1);
+      
+      // Wait for a moment and then start a new round
+      setTimeout(() => startNewRound(), 2000);
+    } else {
+      setIsCorrect(false);
+      
+      // Don't automatically move to the next question on incorrect answer
+      // Let the child try again by clicking on the correct letter
     }
-    return letterName; // Fallback to the letter name
   };
 
   if (loading) {
@@ -237,8 +294,17 @@ function LetterPictureMatch() {
   return (
     <div className="letter-match-container">
       <div className="instruction">
-        <p>התאם את האות לתמונה המתאימה</p>
-        <p>Match the letter to the correct picture</p>
+        {exerciseType === ExerciseType.LETTER_TO_PICTURE ? (
+          <>
+            <p>התאם את האות לתמונה המתאימה</p>
+            <p>Match the letter to the correct picture</p>
+          </>
+        ) : (
+          <>
+            <p>התאם את התמונה לאות המתאימה</p>
+            <p>Match the picture to the correct letter</p>
+          </>
+        )}
       </div>
       
       <div className="score-display">
@@ -251,34 +317,79 @@ function LetterPictureMatch() {
       
       {currentLetter && correctImageItem && (
         <div className="game-content">
-          <div className="current-letter">
-            <h2>{currentLetter}</h2>
-          </div>
-          
-          <div className="options">
-            {options.map((option, index) => (
-              <div 
-                key={index} 
-                className={`option ${isCorrect !== null && option.letter === correctImageItem.letter ? (isCorrect ? 'correct-option' : '') : ''}`}
-                onClick={() => isCorrect === null && handleOptionClick(option)}
-              >
+          {exerciseType === ExerciseType.LETTER_TO_PICTURE ? (
+            // Exercise: Show letter, select matching picture
+            <>
+              <div className="current-letter">
+                <h2>{currentLetter}</h2>
+              </div>
+              
+              <div className="options">
+                {options.map((option, index) => (
+                  <div 
+                    key={index} 
+                    className={`option ${isCorrect !== null && option.letter === correctImageItem.letter ? (isCorrect ? 'correct-option' : 'highlight-correct') : ''} ${isCorrect === false && option.letter !== correctImageItem.letter ? 'incorrect-option' : ''}`}
+                    onClick={() => handleOptionClick(option)}
+                  >
+                    <img 
+                      src={option.imageUrl} 
+                      alt={option.word}
+                      className="option-image"
+                      onError={(e) => {
+                        // If image fails to load, show a placeholder with the letter
+                        e.currentTarget.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23f0f0f0'/%3E%3Ctext x='75' y='75' font-family='Arial' font-size='60' text-anchor='middle' alignment-baseline='middle' fill='%234682b4'%3E${option.letter}%3C/text%3E%3C/svg%3E`;
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            // Exercise: Show picture, select matching letter
+            <>
+              <div className="current-image">
                 <img 
-                  src={option.imageUrl} 
-                  alt={option.letterName}
-                  className="option-image"
+                  src={correctImageItem.imageUrl}
+                  alt={correctImageItem.word}
+                  className="target-image"
                   onError={(e) => {
-                    // If image fails to load, show a placeholder
-                    e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='14' text-anchor='middle' alignment-baseline='middle'%3EImage Not Found%3C/text%3E%3C/svg%3E";
+                    // If image fails to load, show a placeholder with the letter
+                    e.currentTarget.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23f0f0f0'/%3E%3Ctext x='75' y='75' font-family='Arial' font-size='60' text-anchor='middle' alignment-baseline='middle' fill='%234682b4'%3E${correctImageItem.letter}%3C/text%3E%3C/svg%3E`;
                   }}
                 />
-                <p className="option-word">{getWordSuggestion(option.letterName)}</p>
               </div>
-            ))}
-          </div>
+              
+              <div className="letter-options">
+                {letterOptions.map((letter, index) => (
+                  <div 
+                    key={index} 
+                    className={`letter-option ${isCorrect !== null && letter === currentLetter ? (isCorrect ? 'correct-option' : 'highlight-correct') : ''} ${isCorrect === false && letter !== currentLetter ? 'incorrect-option' : ''}`}
+                    onClick={() => handleLetterClick(letter)}
+                  >
+                    <span className="letter-text">{letter}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
           
           {isCorrect !== null && (
             <div className={`feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
-              {isCorrect ? 'נכון! 🎉' : 'נסה שוב! 🤔'}
+              {isCorrect 
+                ? 'נכון! כל הכבוד! 🎉' 
+                : (
+                  <>
+                    נסה שוב! אתה יכול! 🤗
+                    <div className="helper-hint">
+                      {exerciseType === ExerciseType.LETTER_TO_PICTURE ? (
+                        <>Find the picture that starts with <span className="big-letter">{currentLetter}</span></>
+                      ) : (
+                        <>Find the letter for this picture: <span className="big-letter">{currentLetter}</span></>
+                      )}
+                    </div>
+                  </>
+                )
+              }
             </div>
           )}
           
@@ -286,7 +397,7 @@ function LetterPictureMatch() {
             className="new-letter-button"
             onClick={() => startNewRound()}
           >
-            אות חדשה (New Letter)
+            {exerciseType === ExerciseType.LETTER_TO_PICTURE ? 'אות חדשה (New Letter)' : 'תמונה חדשה (New Picture)'}
           </button>
         </div>
       )}
