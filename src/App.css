@@ -133,10 +133,22 @@ footer {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.option:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  border-color: var(--primary-color);
+/* Apply hover styles only on non-touch devices */
+@media (hover: hover) {
+  .option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
+  }
+}
+
+/* Remove hover styles for touch devices */
+@media (hover: none) {
+  .option:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--secondary-color);
+  }
 }
 
 .option-image {
@@ -441,10 +453,22 @@ footer {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.letter-option:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  border-color: var(--primary-color);
+/* Apply hover styles only on non-touch devices */
+@media (hover: hover) {
+  .letter-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
+  }
+}
+
+/* Remove hover styles for touch devices */
+@media (hover: none) {
+  .letter-option:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--secondary-color);
+  }
 }
 
 .letter-text {
