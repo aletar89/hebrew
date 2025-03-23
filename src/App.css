@@ -113,7 +113,7 @@ footer {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
+  gap: 15px;
   margin-top: 20px;
   min-height: 200px;
 }
@@ -121,7 +121,7 @@ footer {
 .option {
   width: 180px;
   height: 180px;
-  padding: 15px;
+  padding: 8px;
   background-color: #fff;
   border: 3px solid var(--secondary-color);
   border-radius: var(--border-radius);
@@ -140,8 +140,8 @@ footer {
 }
 
 .option-image {
-  width: 150px;
-  height: 150px;
+  width: 164px;
+  height: 164px;
   object-fit: contain;
 }
 
@@ -206,18 +206,18 @@ footer {
 /* Responsiveness */
 @media (max-width: 768px) {
   .options {
-    gap: 10px;
+    gap: 8px;
   }
   
   .option {
     width: 140px;
     height: 140px;
-    padding: 10px;
+    padding: 5px;
   }
   
   .option-image {
-    width: 120px;
-    height: 120px;
+    width: 130px;
+    height: 130px;
   }
   
   .current-letter {
@@ -403,7 +403,7 @@ footer {
 
 /* Current image (for picture-to-letter exercise) */
 .current-image {
-  margin: 0 auto 20px;
+  margin: 0 auto 15px;
   text-align: center;
 }
 
@@ -414,7 +414,7 @@ footer {
   border: 3px solid var(--secondary-color);
   border-radius: var(--border-radius);
   background-color: white;
-  padding: 10px;
+  padding: 5px;
   box-shadow: var(--box-shadow);
 }
 
@@ -423,7 +423,7 @@ footer {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
+  gap: 15px;
   margin-top: 20px;
   min-height: 120px;
 }
@@ -472,7 +472,7 @@ footer {
 
 @media (max-width: 480px) {
   .letter-options {
-    gap: 10px;
+    gap: 8px;
   }
   
   .letter-option {
