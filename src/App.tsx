@@ -41,7 +41,9 @@ function LetterPictureMatch() {
         setLoading(true);
         setError("Scanning for available images... This may take a moment.");
         
+        console.log('Starting to load Hebrew letter images...');
         const groups = await getGroupedLetterItems();
+        console.log('Received letter groups:', groups);
         
         // Get the list of available letters (we only use letters that have images)
         const lettersWithImages = Object.keys(groups).filter(letter => 
@@ -51,7 +53,7 @@ function LetterPictureMatch() {
         console.log('Found letters with images:', lettersWithImages);
         console.log('Images per letter:', Object.entries(groups)
           .filter(([, items]) => items.length > 0)
-          .map(([letter, items]) => `${letter}: ${items.length} images`)
+          .map(([letter, items]) => `${letter}: ${items.length} images - ${items.map(i => i.word).join(', ')}`)
         );
         
         setLetterGroups(groups);
@@ -64,9 +66,10 @@ function LetterPictureMatch() {
         } else {
           setError("No Hebrew letter images found. Please add images following the naming convention (e.g., aleph1.png).");
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Error loading images:", err);
-        setError("Failed to load Hebrew letter images. Please check the console for details.");
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(`Failed to load Hebrew letter images: ${errorMessage}. Please check the console for details.`);
       } finally {
         setLoading(false);
       }

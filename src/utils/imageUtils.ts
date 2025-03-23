@@ -50,7 +50,9 @@ const imageExists = (url: string): Promise<boolean> => {
     const img = new Image();
     img.onload = () => resolve(true);
     img.onerror = () => resolve(false);
-    img.src = url;
+    
+    // Encode the URL to handle Hebrew characters properly
+    img.src = encodeURI(url);
   });
 };
 
@@ -110,8 +112,14 @@ export const getAvailableImageFilenames = async (): Promise<string[]> => {
     'אדם', 'ארנב', 'אריה', 'אבא', 'אוטו',  // Aleph
     'בית', 'בננה', 'בקבוק', 'בלון',        // Beth
     'גמל', 'גלידה', 'גן',                  // Gimel
-    'דג', 'דלת', 'דוב', 'דינוזאור', 'דרקון' // Daleth
-    // Add more common words as necessary
+    'דג', 'דלת', 'דוב', 'דינוזאור', 'דרקון', // Daleth
+    'הר', 'הגה', 'הודו', 'היפו',           // He
+    'ורד',                                 // Vav
+    'זאב', 'זברה', 'זבוב',                 // Zayin 
+    'חמור', 'חביתה', 'חבל',                // Heth
+    'טלפון', 'טנק', 'טושים',              // Teth
+    'יד', 'יען', 'יונה'                   // Yod
+    // Add more as needed
   ];
   
   const availableImages: string[] = [];
