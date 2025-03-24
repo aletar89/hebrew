@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import { HebrewLetterItem, getGroupedLetterItems } from './utils/imageUtils';
+import { addSelectionRecord, getSelectionHistory, clearSelectionHistory, SelectionRecord } from './utils/selectionHistory';
 
 // Define the exercise types
 enum ExerciseType {
@@ -14,6 +15,94 @@ function App() {
       <LetterPictureMatch />
     </div>
   )
+}
+
+// Component to display selection history stats
+function SelectionHistoryStats() {
+  const [history, setHistory] = useState<SelectionRecord[]>([]);
+  const [showStats, setShowStats] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (showStats) {
+      setHistory(getSelectionHistory());
+    }
+  }, [showStats]);
+
+  const refreshHistory = () => {
+    setHistory(getSelectionHistory());
+  };
+
+  const handleClearHistory = () => {
+    clearSelectionHistory();
+    setHistory([]);
+  };
+
+  if (!showStats) {
+    return (
+      <button className="history-button" onClick={() => setShowStats(true)}>
+        Show History Stats
+      </button>
+    );
+  }
+
+  // Group by letter and count correct/incorrect
+  const letterStats: Record<string, {correct: number, incorrect: number}> = {};
+  history.forEach(record => {
+    if (!letterStats[record.letter]) {
+      letterStats[record.letter] = { correct: 0, incorrect: 0 };
+    }
+    
+    if (record.correct) {
+      letterStats[record.letter].correct += 1;
+    } else {
+      letterStats[record.letter].incorrect += 1;
+    }
+  });
+
+  return (
+    <div className="history-stats">
+      <div className="history-header">
+        <h3>Selection History</h3>
+        <div className="history-actions">
+          <button onClick={refreshHistory}>Refresh</button>
+          <button onClick={handleClearHistory}>Clear History</button>
+          <button onClick={() => setShowStats(false)}>Hide</button>
+        </div>
+      </div>
+      
+      {Object.keys(letterStats).length === 0 ? (
+        <p>No selection history available.</p>
+      ) : (
+        <table className="history-table">
+          <thead>
+            <tr>
+              <th>Letter</th>
+              <th>Correct</th>
+              <th>Incorrect</th>
+              <th>Success Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(letterStats).map(([letter, stats]) => {
+              const total = stats.correct + stats.incorrect;
+              const successRate = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
+              
+              return (
+                <tr key={letter}>
+                  <td>{letter}</td>
+                  <td>{stats.correct}</td>
+                  <td>{stats.incorrect}</td>
+                  <td>{successRate}%</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+      
+      <p>Total entries: {history.length}</p>
+    </div>
+  );
 }
 
 // Component for the letter-picture matching exercise
@@ -206,7 +295,19 @@ function LetterPictureMatch() {
     
     setAttempts(attempts + 1);
     
-    if (correctImageItem && option.letter === correctImageItem.letter) {
+    const isAnswerCorrect = correctImageItem !== null && option.letter === correctImageItem.letter;
+    
+    // Log the selection to localStorage
+    if (currentLetter) {
+      addSelectionRecord({
+        letter: currentLetter,
+        correct: isAnswerCorrect,
+        timestamp: Date.now(),
+        exerciseType: ExerciseType.LETTER_TO_PICTURE
+      });
+    }
+    
+    if (isAnswerCorrect) {
       setIsCorrect(true);
       setScore(score + 1);
       
@@ -227,7 +328,19 @@ function LetterPictureMatch() {
     
     setAttempts(attempts + 1);
     
-    if (currentLetter && letter === currentLetter) {
+    const isAnswerCorrect = currentLetter !== null && letter === currentLetter;
+    
+    // Log the selection to localStorage
+    if (correctImageItem) {
+      addSelectionRecord({
+        letter: letter,
+        correct: isAnswerCorrect,
+        timestamp: Date.now(),
+        exerciseType: ExerciseType.PICTURE_TO_LETTER
+      });
+    }
+    
+    if (isAnswerCorrect) {
       setIsCorrect(true);
       setScore(score + 1);
       
@@ -302,7 +415,10 @@ function LetterPictureMatch() {
       </div>
       
       <div className="score-display">
-        <div className="score-number">Score: {score}</div>
+        <div className="score-container">
+          <div className="score-number">Score: {score}</div>
+          <SelectionHistoryStats />
+        </div>
       </div>
       
       {currentLetter && correctImageItem && (
