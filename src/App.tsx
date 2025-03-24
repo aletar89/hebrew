@@ -33,6 +33,8 @@ function LetterPictureMatch() {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [score, setScore] = useState<number>(0);
   const [attempts, setAttempts] = useState<number>(0);
+  const [selectedOption, setSelectedOption] = useState<HebrewLetterItem | null>(null);
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   
   // Load available images when component mounts
   useEffect(() => {
@@ -197,6 +199,8 @@ function LetterPictureMatch() {
     }
     
     setIsCorrect(null);
+    setSelectedOption(null);
+    setSelectedLetter(null);
   };
 
   // Handle when an image option is selected (for LETTER_TO_PICTURE mode)
@@ -205,6 +209,7 @@ function LetterPictureMatch() {
     if (isCorrect === true) return; 
     
     setAttempts(attempts + 1);
+    setSelectedOption(option);
     
     if (correctImageItem && option.letter === correctImageItem.letter) {
       setIsCorrect(true);
@@ -225,15 +230,20 @@ function LetterPictureMatch() {
     // Only prevent multiple clicks if the answer is already correct
     if (isCorrect === true) return; 
     
+    console.log(`Letter clicked: ${letter}, current letter: ${currentLetter}`);
+    
     setAttempts(attempts + 1);
+    setSelectedLetter(letter);
     
     if (currentLetter && letter === currentLetter) {
+      console.log(`Correct answer! Setting isCorrect to true`);
       setIsCorrect(true);
       setScore(score + 1);
       
       // Wait for a moment and then start a new round
       setTimeout(() => startNewRound(), 2000);
     } else {
+      console.log(`Incorrect answer. Selected: ${letter}, Expected: ${currentLetter}`);
       setIsCorrect(false);
       
       // Don't automatically move to the next question on incorrect answer
@@ -318,7 +328,7 @@ function LetterPictureMatch() {
                 {options.map((option, index) => (
                   <div 
                     key={index} 
-                    className={`option ${isCorrect !== null && option.letter === correctImageItem.letter ? (isCorrect ? 'correct-option' : 'highlight-correct') : ''} ${isCorrect === false && option.letter !== correctImageItem.letter ? 'incorrect-option' : ''}`}
+                    className={`option${isCorrect === true && option.letter === correctImageItem?.letter ? ' correct-option' : ''}${isCorrect === false && selectedOption && option.letter === selectedOption.letter ? ' incorrect-option' : ''}`}
                     onClick={() => handleOptionClick(option)}
                   >
                     <img 
@@ -350,15 +360,21 @@ function LetterPictureMatch() {
               </div>
               
               <div className="letter-options">
-                {letterOptions.map((letter, index) => (
-                  <div 
-                    key={index} 
-                    className={`letter-option ${isCorrect !== null && letter === currentLetter ? (isCorrect ? 'correct-option' : 'highlight-correct') : ''} ${isCorrect === false && letter !== currentLetter ? 'incorrect-option' : ''}`}
-                    onClick={() => handleLetterClick(letter)}
-                  >
-                    <span className="letter-text">{letter}</span>
-                  </div>
-                ))}
+                {letterOptions.map((letter, index) => {
+                  return (
+                    <div 
+                      key={index} 
+                      style={{ 
+                        borderWidth: '3px',
+                        borderStyle: 'solid'
+                      }}
+                      className={`letter-option${isCorrect === true && letter === currentLetter ? ' correct-option' : ''}${isCorrect === false && selectedLetter === letter ? ' incorrect-option' : ''}`}
+                      onClick={() => handleLetterClick(letter)}
+                    >
+                      <span className="letter-text">{letter}</span>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

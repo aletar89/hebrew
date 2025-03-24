@@ -302,18 +302,35 @@ footer {
 
 /* Feedback for correct and incorrect options */
 .option.correct-option {
-  border-color: var(--success-color);
+  border-color: var(--success-color) !important;
   background-color: rgba(76, 175, 80, 0.1);
   animation: pulse 1s infinite;
 }
 
 .option.highlight-correct {
-  border-color: var(--success-color);
+  border-color: var(--success-color) !important;
   box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
 }
 
 .option.incorrect-option {
-  border-color: var(--error-color);
+  border-color: var(--error-color) !important;
+  opacity: 0.7;
+}
+
+/* Feedback for correct and incorrect letter options */
+.letter-option.correct-option {
+  border-color: var(--success-color) !important;
+  background-color: rgba(76, 175, 80, 0.1);
+  animation: pulse 1s infinite;
+}
+
+.letter-option.highlight-correct {
+  border-color: var(--success-color) !important;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+}
+
+.letter-option.incorrect-option {
+  border-color: var(--error-color) !important;
   opacity: 0.7;
 }
 
@@ -491,6 +508,27 @@ footer {
   
   .letter-text {
     font-size: 2.5rem;
+  }
+  
+  /* Base letter-option styles on mobile */
+  .letter-option,
+  .option {
+    border-width: 3px;
+  }
+  
+  /* Enhanced mobile styles for letter and picture options */
+  .letter-option.correct-option,
+  .option.correct-option {
+    border-width: 4px !important;
+    border-color: var(--success-color) !important;
+    background-color: rgba(76, 175, 80, 0.2);
+  }
+  
+  .letter-option.incorrect-option,
+  .option.incorrect-option {
+    border-width: 4px !important;
+    border-color: var(--error-color) !important;
+    background-color: rgba(255, 107, 107, 0.1);
   }
 }
 
