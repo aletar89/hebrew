@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react'
 import './App.css'
-import { HebrewLetterItem, getGroupedLetterItems } from './utils/imageUtils';
+import { HebrewLetterItem, processImageModules } from './utils/imageUtils';
+
+// Get image modules at build time using Vite's import.meta.glob
+// Note: `eager: true` loads the modules immediately.
+// `as: 'url'` ensures we get the resolved URL string directly.
+// Adjust the glob pattern if images are in subdirectories or have different extensions.
+const imageModules = import.meta.glob('/public/images/*.{png,jpg,jpeg,gif,svg,webp}', { eager: true, as: 'url' });
+
+// Process the modules immediately to get the initial grouped data
+const initialLetterGroups = processImageModules(imageModules);
+const initialAvailableLetters = Object.keys(initialLetterGroups).filter(letter =>
+    initialLetterGroups[letter] && initialLetterGroups[letter].length > 0
+);
+
+console.log('Initial Letter Groups:', initialLetterGroups);
+console.log('Initial Available Letters:', initialAvailableLetters);
 
 // Define the exercise types
 enum ExerciseType {
@@ -18,10 +33,9 @@ function App() {
 
 // Component for the letter-picture matching exercise
 function LetterPictureMatch() {
-  // State for available letters and images
-  const [letterGroups, setLetterGroups] = useState<Record<string, HebrewLetterItem[]>>({});
-  const [availableLetters, setAvailableLetters] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  // State for available letters and images - initialized from build-time data
+  const [letterGroups] = useState<Record<string, HebrewLetterItem[]>>(initialLetterGroups);
+  const [availableLetters] = useState<string[]>(initialAvailableLetters);
   const [error, setError] = useState<string | null>(null);
 
   // Game state
@@ -36,61 +50,34 @@ function LetterPictureMatch() {
   const [selectedOption, setSelectedOption] = useState<HebrewLetterItem | null>(null);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   
-  // Load available images when component mounts
+  // Start the first round once the component mounts, using the pre-loaded data
   useEffect(() => {
-    const loadImages = async () => {
-      try {
-        setLoading(true);
-        setError("Scanning for available images... This may take a moment.");
-        
-        console.log('Starting to load Hebrew letter images...');
-        const groups = await getGroupedLetterItems();
-        console.log('Received letter groups:', groups);
-        
-        // Get the list of available letters (we only use letters that have images)
-        const lettersWithImages = Object.keys(groups).filter(letter => 
-          groups[letter] && groups[letter].length > 0
-        );
-        
-        console.log('Found letters with images:', lettersWithImages);
-        console.log('Images per letter:', Object.entries(groups)
-          .filter(([, items]) => items.length > 0)
-          .map(([letter, items]) => `${letter}: ${items.length} images - ${items.map(i => i.word).join(', ')}`)
-        );
-        
-        setLetterGroups(groups);
-        setAvailableLetters(lettersWithImages);
-        
-        // Only start a game if we have letters available
-        if (lettersWithImages.length > 0) {
-          setError(null);
-          startNewRound(groups, lettersWithImages);
-        } else {
-          setError("No Hebrew letter images found. Please add images following the naming convention (e.g., aleph1.png).");
-        }
-      } catch (err: unknown) {
-        console.error("Error loading images:", err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        setError(`Failed to load Hebrew letter images: ${errorMessage}. Please check the console for details.`);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadImages();
-  }, []);
+    if (availableLetters.length > 0) {
+      console.log('Starting first round...');
+      startNewRound(letterGroups, availableLetters); // Pass initial data
+    } else {
+      // If no images were found at build time
+      setError("No Hebrew letter images found in '/public/images/'. Please add images following the naming convention (e.g., אבא.png) and rebuild.");
+      console.error("No available letters found after processing image modules.")
+    }
+    // Disable exhaustive-deps warning because we intentionally run this only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this runs only once
 
   // Start a new round of the game
   const startNewRound = (groups = letterGroups, letters = availableLetters) => {
-    if (letters.length === 0) return;
-    
-    // Filter out any letters that might not have images anymore
-    const lettersWithImages = letters.filter(letter => 
+    // Filter out any letters that might not have images (shouldn't be necessary with build-time data, but good practice)
+    const lettersWithImages = letters.filter(letter =>
       groups[letter] && groups[letter].length > 0
     );
-    
+
+    // If, after filtering, no letters are left (e.g., empty image directory)
     if (lettersWithImages.length === 0) {
-      setError("No Hebrew letter images available. Please add images to the '/public/images/' directory.");
+        // Avoid setting error if it was already set by the initial check
+        if (!error) {
+             setError("No Hebrew letter images available to start a round. Please add images to the '/public/images/' directory.");
+        }
+        console.error("Cannot start new round: No letters with associated images available.")
       return;
     }
 
@@ -251,49 +238,28 @@ function LetterPictureMatch() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="letter-match-container loading">
-        <div className="loading-spinner"></div>
-        <p>Scanning for Hebrew letter images...</p>
-        <p>This may take a moment</p>
-      </div>
-    );
-  }
-
+  // Conditional rendering based on error or no letters
   if (error) {
     return (
       <div className="letter-match-container error">
         <p>{error}</p>
-        {!loading && availableLetters.length === 0 && (
-          <>
-            <p>Please add images to the '/public/images/' directory using the naming convention:</p>
-            <ul>
-              <li>aleph1.png - for the letter א (Aleph)</li>
-              <li>beth1.png - for the letter ב (Beth)</li>
-              <li>gimel1.png - for the letter ג (Gimel)</li>
-              <li>etc.</li>
-            </ul>
-          </>
-        )}
       </div>
     );
   }
 
-  if (availableLetters.length === 0) {
+  // If no letters were found initially, error state handles this.
+  // This check might be redundant now but kept for safety.
+  if (availableLetters.length === 0 && !error) {
     return (
       <div className="letter-match-container error">
         <p>No Hebrew letter images available.</p>
-        <p>Please add images to the '/public/images/' directory using the naming convention:</p>
-        <ul>
-          <li>aleph1.png - for the letter א (Aleph)</li>
-          <li>beth1.png - for the letter ב (Beth)</li>
-          <li>gimel1.png - for the letter ג (Gimel)</li>
-          <li>etc.</li>
-        </ul>
+        <p>Please add images to the '/public/images/' directory using the naming convention (e.g., אבא.png).</p>
       </div>
     );
   }
+
+  // Check if the game is ready to be displayed
+  const gameReady = currentLetter && correctImageItem;
 
   return (
     <div className="letter-match-container">
@@ -315,7 +281,7 @@ function LetterPictureMatch() {
         <div className="score-number">Score: {score}</div>
       </div>
       
-      {currentLetter && correctImageItem && (
+      {gameReady && (
         <div className="game-content">
           {exerciseType === ExerciseType.LETTER_TO_PICTURE ? (
             // Exercise: Show letter, select matching picture
@@ -327,7 +293,7 @@ function LetterPictureMatch() {
               <div className="options">
                 {options.map((option, index) => (
                   <div
-                    key={index}
+                    key={`${option.word}-${index}`}
                     className={`option${isCorrect === true && option.letter === correctImageItem?.letter ? ' correct-option' : ''}${isCorrect === false && selectedOption && option.letter === selectedOption.letter ? ' incorrect-option' : ''}`}
                     onClick={() => handleOptionClick(option)}
                   >
