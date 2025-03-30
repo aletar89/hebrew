@@ -8,6 +8,7 @@ export const NextRoundButton: React.FC<{ onClick: () => void; exerciseType: Exer
         className="new-letter-button"
         onClick={onClick}
     >
-        {exerciseType === ExerciseType.LETTER_TO_PICTURE ? 'אות חדשה (New Letter)' : 'תמונה חדשה (New Picture)'}
+        {/* Remove Hebrew text, keep only English */}
+        {exerciseType === ExerciseType.LETTER_TO_PICTURE ? 'New Letter' : 'New Picture'}
     </button>
 ); 

@@ -424,11 +424,11 @@ footer {
 .new-letter-button {
   margin-top: 20px;
   padding: 12px 24px;
-  font-size: 1.2rem;
+  font-size: 1rem;
   background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.2s;
   box-shadow: var(--box-shadow);
@@ -573,4 +573,107 @@ footer {
   font-size: 3.5rem;
   font-weight: bold;
   color: var(--primary-color);
+}
+
+/* Stats Display Styles */
+.stats-display {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+.stats-display h4 {
+  text-align: center;
+  color: var(--primary-color);
+  margin-bottom: 15px;
+}
+
+.stats-summary p {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+}
+
+.stats-controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stats-controls button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  background-color: var(--secondary-color);
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.stats-controls button:hover {
+  background-color: var(--primary-color);
+}
+
+.stats-controls button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Stats Table Styles */
+.stats-table-container {
+  margin-top: 20px;
+  overflow-x: auto; /* Allow horizontal scrolling on small screens */
+}
+
+.stats-table-container h5 {
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.stats-table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.stats-table-container th,
+.stats-table-container td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.stats-table-container th {
+  background-color: var(--secondary-color);
+  color: white;
+  font-weight: bold;
+}
+
+.stats-table-container tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.stats-table-container tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* Ensure body takes full width */
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Container for game control buttons */
+.game-controls-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+    flex-wrap: wrap;
 }

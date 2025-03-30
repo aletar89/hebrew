@@ -5,10 +5,10 @@ import React from 'react';
 export const FeedbackDisplay: React.FC<{ isCorrect: boolean | null }> = ({ isCorrect }) => {
     if (isCorrect === null) return null; // No feedback yet
     return (
-        <div className={`feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
+        <div dir={isCorrect === false ? "rtl" : undefined} className={`feedback ${isCorrect ? 'correct' : 'incorrect'}`}>
             {isCorrect
                 ? '🎉 !נכון! כל הכבוד'
-                : '🤗 !נסה שוב! אתה יכול'
+                : 'לא נכון... 🤔'
             }
         </div>
     );
