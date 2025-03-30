@@ -2,11 +2,12 @@ import { useEffect, useReducer, useCallback, useState } from 'react'
 import './App.css'
 import { HebrewLetterItem, processImageModules } from './utils/imageUtils';
 import { getRandomElement, shuffleArray } from './utils/arrayUtils';
-import { gameReducer, initialState, ExerciseType } from './state/gameReducer';
+import { GameState, gameReducer, initialState, ExerciseType } from './state/gameReducer';
 import { ScoreDisplay } from './components/ScoreDisplay';
 import { InstructionDisplay } from './components/InstructionDisplay';
 import { FeedbackDisplay } from './components/FeedbackDisplay';
 import { GameArea } from './components/GameArea';
+import { NextRoundButton } from './components/NextRoundButton';
 import { StatsDisplay } from './components/StatsDisplay';
 import { saveSelection, SelectionRecord, getSelectionHistory } from './utils/storageUtils';
 import { calculateLetterWeights, getWeightedRandomLetter } from './utils/spacedRepetitionUtils';
@@ -67,7 +68,7 @@ interface LetterPictureMatchProps {
 }
 
 function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused, onSelectionSave, onTogglePause, updateTrigger }: LetterPictureMatchProps) {
-  const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [state, dispatch] = useReducer<React.Reducer<GameState, any>>(gameReducer, initialState);
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
   const [showStats, setShowStats] = useState(false);
 
@@ -75,12 +76,13 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
 
   // --- Game Logic Callbacks ---
 
+  // Memoize startNewRound with useCallback to avoid unnecessary re-renders if passed down
   const startNewRound = useCallback(() => {
     console.log("Starting new round...");
     const newQuestionTimestamp = Date.now();
     setCurrentQuestionId(newQuestionTimestamp);
     console.log("New Question ID (Timestamp):", newQuestionTimestamp);
-    dispatch({ type: 'RESET_FEEDBACK' });
+    dispatch({ type: 'RESET_FEEDBACK' }); // Reset feedback immediately
 
     if (availableLetters.length === 0) {
         dispatch({ type: 'SET_ERROR', payload: "No Hebrew letters available to start a round." });
@@ -89,19 +91,19 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
 
     const rand = Math.random();
     let newExerciseType: ExerciseType;
-    if (rand < 0.33) {
+    if (rand < 0.33) { 
         newExerciseType = ExerciseType.DRAWING;
-    } else if (rand < 0.66) {
+    } else if (rand < 0.66) { 
         newExerciseType = ExerciseType.LETTER_TO_PICTURE;
-    } else {
+    } else { 
         newExerciseType = ExerciseType.PICTURE_TO_LETTER;
     }
 
-    let roundPayload: Partial<typeof initialState> = { exerciseType: newExerciseType };
-    let selectedLetter: string | undefined;
+    let roundPayload: Partial<GameState> = { exerciseType: newExerciseType };
+    let selectedLetter: string | undefined; 
 
     if (newExerciseType === ExerciseType.DRAWING) {
-        selectedLetter = getRandomElement(availableLetters);
+        selectedLetter = getRandomElement(availableLetters); // Used here!
         if (!selectedLetter) {
              dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for drawing round." });
              return;
@@ -116,7 +118,7 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
         if (lettersWithImages.length === 0) {
              console.warn("Attempted non-drawing round, but no letters have images. Falling back to DRAWING.");
              newExerciseType = ExerciseType.DRAWING;
-             selectedLetter = getRandomElement(availableLetters);
+             selectedLetter = getRandomElement(availableLetters); // Used here!
               if (!selectedLetter) {
                 dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for fallback drawing round." });
                 return;
@@ -125,27 +127,27 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
         } else {
             console.log("Calculating weights for next round (non-drawing)...");
             const history = getSelectionHistory();
-            const weightedLetters = calculateLetterWeights(history, lettersWithImages);
+            const weightedLetters = calculateLetterWeights(history, lettersWithImages); 
             selectedLetter = getWeightedRandomLetter(weightedLetters);
 
             if (!selectedLetter) {
                 console.error("Weighted random selection failed. Falling back to uniform random from lettersWithImages.");
-                selectedLetter = getRandomElement(lettersWithImages);
-                if (!selectedLetter) {
+                selectedLetter = getRandomElement(lettersWithImages); // Used here!
+                if (!selectedLetter) { 
                     dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for the round, even with fallback." });
                     return;
                 }
             }
             console.log(`Selected letter based on weights: ${selectedLetter}`);
-            roundPayload.currentLetter = selectedLetter;
+            roundPayload.currentLetter = selectedLetter; 
 
             const letterImages = letterGroups[selectedLetter];
             const selectedImage = letterImages[Math.floor(Math.random() * letterImages.length)];
-             if (!selectedImage) {
+             if (!selectedImage) { 
                  dispatch({ type: 'SET_ERROR', payload: `Failed to select an image for letter ${selectedLetter}.` });
                  return;
             }
-            roundPayload.correctImageItem = selectedImage;
+            roundPayload.correctImageItem = selectedImage; 
 
             let roundImageOptions: HebrewLetterItem[] = [];
             let roundLetterOptions: string[] = [];
@@ -171,7 +173,7 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
                 }
                 roundImageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
                 roundPayload.imageOptions = roundImageOptions;
-            } else { // PICTURE_TO_LETTER
+            } else { 
                 const otherLetters = lettersWithImages.filter(l => l !== selectedLetter);
                 const shuffledOtherLetters = shuffleArray(otherLetters);
                 const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
@@ -199,59 +201,58 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Effect to automatically start a new round after *any* answer is selected
+  // Effect to automatically start a new round
   useEffect(() => {
     let timer: number | undefined;
-    // If an answer has been selected (correct or incorrect)
-    if (state.isCorrect !== null) {
-      console.log(`Answer selected (Correct: ${state.isCorrect}). Starting next round soon...`);
+    const shouldAdvance = state.isCorrect !== null &&
+                          (state.exerciseType !== ExerciseType.DRAWING || state.isCorrect === true);
+
+    if (shouldAdvance) {
+      console.log(`Advancing round (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
       timer = setTimeout(() => {
         startNewRound();
-      }, 2000); // Delay before next round
+      }, 2000); 
     }
-    // Cleanup function to clear timeout if component unmounts or state changes before timeout finishes
-    return () => clearTimeout(timer);
-  }, [state.isCorrect, startNewRound]); // Depend on isCorrect and the memoized startNewRound
+    return () => clearTimeout(timer); 
+  }, [state.isCorrect, state.exerciseType, startNewRound]);
 
   // --- Event Handlers ---
 
   const handleImageSelect = (option: HebrewLetterItem) => {
-    // Prevent multiple selections in the same round by checking if feedback is already shown
     if (state.isCorrect !== null) return;
     const isSelectionCorrect = state.correctImageItem?.letter === option.letter;
 
-    if (!isRecordingPaused && state.correctImageItem && currentQuestionId > 0) {
+    if (!isRecordingPaused && state.exerciseType !== ExerciseType.DRAWING && state.correctImageItem && currentQuestionId > 0) {
         const record: SelectionRecord = {
             timestamp: Date.now(),
             questionId: currentQuestionId,
             targetLetter: state.correctImageItem.letter,
-            selectedAnswer: option.word,
+            selectedAnswer: option.word, 
             isCorrect: isSelectionCorrect,
             exerciseType: state.exerciseType,
         };
         saveSelection(record);
-        onSelectionSave();
+        onSelectionSave(); 
     }
 
     dispatch({ type: 'SELECT_IMAGE', payload: { selected: option, isCorrect: isSelectionCorrect } });
   };
 
   const handleLetterSelect = (letter: string) => {
-    // Prevent multiple selections in the same round by checking if feedback is already shown
     if (state.isCorrect !== null) return;
     const isSelectionCorrect = state.currentLetter === letter;
 
-    if (!isRecordingPaused && state.currentLetter && currentQuestionId > 0) {
+    if (!isRecordingPaused && state.exerciseType !== ExerciseType.DRAWING && state.currentLetter && currentQuestionId > 0) {
         const record: SelectionRecord = {
             timestamp: Date.now(),
             questionId: currentQuestionId,
             targetLetter: state.currentLetter,
-            selectedAnswer: letter,
+            selectedAnswer: letter, 
             isCorrect: isSelectionCorrect,
             exerciseType: state.exerciseType,
         };
         saveSelection(record);
-        onSelectionSave();
+        onSelectionSave(); 
     }
 
     dispatch({ type: 'SELECT_LETTER', payload: { selected: letter, isCorrect: isSelectionCorrect } });
@@ -296,6 +297,7 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
                     <FeedbackDisplay isCorrect={state.isCorrect} />
                 </div>
                 <div className="game-controls-container">
+                    <NextRoundButton onClick={startNewRound} />
                     <button onClick={handleToggleStats} className="new-letter-button">
                         {showStats ? 'Hide Stats' : 'Show Stats'}
                     </button>
