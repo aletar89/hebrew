@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useCallback } from 'react'
+import { useEffect, useReducer, useCallback, useState } from 'react'
 import './App.css'
 import { HebrewLetterItem, processImageModules } from './utils/imageUtils';
 import { getRandomElement, shuffleArray } from './utils/arrayUtils';
@@ -8,6 +8,8 @@ import { InstructionDisplay } from './components/InstructionDisplay';
 import { FeedbackDisplay } from './components/FeedbackDisplay';
 import { GameArea } from './components/GameArea';
 import { NextRoundButton } from './components/NextRoundButton';
+import { StatsDisplay } from './components/StatsDisplay';
+import { saveSelection, SelectionRecord } from './utils/storageUtils';
 
 // --- Build-time Data Processing ---
 
@@ -23,12 +25,22 @@ console.log('Initial Available Letters:', initialAvailableLetters);
 // --- Main App Component (Container for the game) ---
 
 function App() {
+  const [isRecordingPaused, setIsRecordingPaused] = useState(false);
+
+  const handleTogglePause = () => {
+    setIsRecordingPaused(prev => !prev);
+  };
+
   return (
     <div className="app-container">
-      {/* Pass build-time data as props to the main game component */}
       <LetterPictureMatch
         letterGroups={initialLetterGroups}
         availableLetters={initialAvailableLetters}
+        isRecordingPaused={isRecordingPaused}
+      />
+      <StatsDisplay
+        isRecordingPaused={isRecordingPaused}
+        onTogglePause={handleTogglePause}
       />
     </div>
   );
@@ -39,16 +51,21 @@ function App() {
 interface LetterPictureMatchProps {
   letterGroups: Record<string, HebrewLetterItem[]>;
   availableLetters: string[];
+  isRecordingPaused: boolean;
 }
 
-function LetterPictureMatch({ letterGroups, availableLetters }: LetterPictureMatchProps) {
+function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused }: LetterPictureMatchProps) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
 
   // --- Game Logic Callbacks ---
 
   // Memoize startNewRound with useCallback to avoid unnecessary re-renders if passed down
   const startNewRound = useCallback(() => {
     console.log("Starting new round...");
+    const newQuestionTimestamp = Date.now();
+    setCurrentQuestionId(newQuestionTimestamp);
+    console.log("New Question ID (Timestamp):", newQuestionTimestamp);
     dispatch({ type: 'RESET_FEEDBACK' }); // Reset feedback immediately
 
     const lettersWithImages = availableLetters.filter(letter =>
@@ -145,12 +162,40 @@ function LetterPictureMatch({ letterGroups, availableLetters }: LetterPictureMat
   const handleImageSelect = (option: HebrewLetterItem) => {
     if (state.isCorrect === true) return; // Prevent clicking after correct answer
     const isSelectionCorrect = state.correctImageItem?.letter === option.letter;
+
+    // Save selection if not paused
+    if (!isRecordingPaused && state.correctImageItem && currentQuestionId > 0) {
+        const record: SelectionRecord = {
+            timestamp: Date.now(),
+            questionId: currentQuestionId,
+            targetLetter: state.correctImageItem.letter,
+            selectedAnswer: option.word,
+            isCorrect: isSelectionCorrect,
+            exerciseType: state.exerciseType,
+        };
+        saveSelection(record);
+    }
+
     dispatch({ type: 'SELECT_IMAGE', payload: { selected: option, isCorrect: isSelectionCorrect } });
   };
 
   const handleLetterSelect = (letter: string) => {
      if (state.isCorrect === true) return; // Prevent clicking after correct answer
     const isSelectionCorrect = state.currentLetter === letter;
+
+     // Save selection if not paused
+     if (!isRecordingPaused && state.currentLetter && currentQuestionId > 0) {
+        const record: SelectionRecord = {
+            timestamp: Date.now(),
+            questionId: currentQuestionId,
+            targetLetter: state.currentLetter,
+            selectedAnswer: letter,
+            isCorrect: isSelectionCorrect,
+            exerciseType: state.exerciseType,
+        };
+        saveSelection(record);
+    }
+
     dispatch({ type: 'SELECT_LETTER', payload: { selected: letter, isCorrect: isSelectionCorrect } });
   };
 
