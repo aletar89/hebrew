@@ -67,7 +67,7 @@ export const processImageModules = (
     grouped[letter] = [];
   });
 
-  console.log("Processing modules:", imageModules);
+  // console.log("Processing modules:", imageModules); // Already commented out
 
   for (const [path, imageUrl] of Object.entries(imageModules)) {
       try {
@@ -96,22 +96,23 @@ export const processImageModules = (
 
             // Add the item to the correct group
             if (!grouped[letterItem.letter]) {
-                console.warn(`Letter ${letterItem.letter} derived from filename ${filename} was not pre-initialized in grouped object. Skipping.`);
+                // console.warn(`Letter ${letterItem.letter} derived from filename ${filename} was not pre-initialized in grouped object. Skipping.`); // Comment out
                 continue; // Should not happen if hebrewLetterMap is complete
             }
             grouped[letterItem.letter].push(letterItem);
 
           } else {
-             console.warn(`Skipping file: ${filename}. Could not determine a valid Hebrew starting letter for word: '${word}'`);
+             // console.warn(`Skipping file: ${filename}. Could not determine a valid Hebrew starting letter for word: '${word}'`); // Comment out
           }
         } else {
-            console.warn(`Skipping file: ${filename}. Does not match expected image format.`);
+            // console.warn(`Skipping file: ${filename}. Does not match expected image format.`); // Comment out
         }
-      } catch (error) {
-        console.error(`Error processing image path: ${path}`, error);
+      } catch (_error) {
+        // console.error(`Error processing image path: ${path}`, _error); // Keep commented out
       }
   }
 
+  // Keep this log for verifying the final structure
   console.log("Grouped letter items:", grouped);
   return grouped;
 }; 

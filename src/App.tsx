@@ -2,7 +2,7 @@ import { useEffect, useReducer, useCallback, useState } from 'react'
 import './App.css'
 import { HebrewLetterItem, processImageModules } from './utils/imageUtils';
 import { getRandomElement, shuffleArray } from './utils/arrayUtils';
-import { GameState, GameAction, gameReducer, initialState, ExerciseType } from './state/gameReducer';
+import { gameReducer, initialState, ExerciseType } from './state/gameReducer';
 import { ScoreDisplay } from './components/ScoreDisplay';
 import { InstructionDisplay } from './components/InstructionDisplay';
 import { FeedbackDisplay } from './components/FeedbackDisplay';
@@ -13,7 +13,17 @@ import { saveSelection, SelectionRecord } from './utils/storageUtils';
 
 // --- Build-time Data Processing ---
 
-const imageModules = import.meta.glob('/public/images/*.{png,jpg,jpeg,gif,svg,webp}', { eager: true, as: 'url' });
+// Update import.meta.glob syntax for Vite
+const imageModules = import.meta.glob(
+    '/public/images/*.{png,jpg,jpeg,gif,svg,webp}',
+    { 
+        // eager: true, as: 'url' // Deprecated syntax
+        eager: true, 
+        query: '?url',         // New syntax: request the URL
+        import: 'default'       // New syntax: import the default export (the URL string)
+    }
+) as Record<string, string>; // Assert the type since Vite's type might be broader
+
 const initialLetterGroups = processImageModules(imageModules);
 const initialAvailableLetters = Object.keys(initialLetterGroups).filter(letter =>
   initialLetterGroups[letter] && initialLetterGroups[letter].length > 0
@@ -26,9 +36,14 @@ console.log('Initial Available Letters:', initialAvailableLetters);
 
 function App() {
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
+  const [selectionCounter, setSelectionCounter] = useState(0);
 
   const handleTogglePause = () => {
     setIsRecordingPaused(prev => !prev);
+  };
+
+  const triggerStatsUpdate = () => {
+    setSelectionCounter(count => count + 1);
   };
 
   return (
@@ -37,10 +52,12 @@ function App() {
         letterGroups={initialLetterGroups}
         availableLetters={initialAvailableLetters}
         isRecordingPaused={isRecordingPaused}
+        onSelectionSave={triggerStatsUpdate}
       />
       <StatsDisplay
         isRecordingPaused={isRecordingPaused}
         onTogglePause={handleTogglePause}
+        updateTrigger={selectionCounter}
       />
     </div>
   );
@@ -52,9 +69,10 @@ interface LetterPictureMatchProps {
   letterGroups: Record<string, HebrewLetterItem[]>;
   availableLetters: string[];
   isRecordingPaused: boolean;
+  onSelectionSave: () => void;
 }
 
-function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused }: LetterPictureMatchProps) {
+function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused, onSelectionSave }: LetterPictureMatchProps) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
 
@@ -174,6 +192,7 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused 
             exerciseType: state.exerciseType,
         };
         saveSelection(record);
+        onSelectionSave();
     }
 
     dispatch({ type: 'SELECT_IMAGE', payload: { selected: option, isCorrect: isSelectionCorrect } });
@@ -194,6 +213,7 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused 
             exerciseType: state.exerciseType,
         };
         saveSelection(record);
+        onSelectionSave();
     }
 
     dispatch({ type: 'SELECT_LETTER', payload: { selected: letter, isCorrect: isSelectionCorrect } });

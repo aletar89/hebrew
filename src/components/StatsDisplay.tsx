@@ -9,6 +9,7 @@ import { hebrewLetterMap } from '../utils/imageUtils';
 interface StatsDisplayProps {
     isRecordingPaused: boolean;
     onTogglePause: () => void;
+    updateTrigger: number;
 }
 
 interface LetterStat {
@@ -22,6 +23,7 @@ type LetterStats = Record<string, LetterStat>;
 // Excludes multiple identical wrong answers for the same question round
 const calculateLetterStats = (history: SelectionRecord[]): LetterStats => {
     const stats: LetterStats = {};
+    // Use number for questionId in the key
     const processedAnswers = new Set<string>(); // Store "questionId|selectedAnswer"
 
     // Initialize stats for all known letters
@@ -30,26 +32,32 @@ const calculateLetterStats = (history: SelectionRecord[]): LetterStats => {
     });
 
     history.forEach(record => {
-        const answerKey = `${record.questionId}|${record.selectedAnswer}`;
+        // Ensure questionId is a number before creating the key
+        if (typeof record.questionId === 'number') {
+            const answerKey = `${record.questionId}|${record.selectedAnswer}`;
 
-        // Only process if this specific answer hasn't been processed for this question
-        if (!processedAnswers.has(answerKey)) {
-            if (stats[record.targetLetter]) { // Ensure the target letter exists in our map
-                if (record.isCorrect) {
-                    stats[record.targetLetter].correct += 1;
-                } else {
-                    stats[record.targetLetter].incorrect += 1;
+            // Only process if this specific answer hasn't been processed for this question
+            if (!processedAnswers.has(answerKey)) {
+                if (stats[record.targetLetter]) { // Ensure the target letter exists in our map
+                    if (record.isCorrect) {
+                        stats[record.targetLetter].correct += 1;
+                    } else {
+                        stats[record.targetLetter].incorrect += 1;
+                    }
                 }
+                // Mark this specific answer for this question as processed
+                processedAnswers.add(answerKey);
             }
-            // Mark this specific answer for this question as processed
-            processedAnswers.add(answerKey);
+        } else {
+            // Log or handle records with invalid questionId if necessary
+            console.warn("Skipping record with invalid questionId:", record);
         }
     });
     console.log("Calculated Stats:", stats);
     return stats;
 };
 
-export const StatsDisplay: React.FC<StatsDisplayProps> = ({ isRecordingPaused, onTogglePause }) => {
+export const StatsDisplay: React.FC<StatsDisplayProps> = ({ isRecordingPaused, onTogglePause, updateTrigger }) => {
     const [letterStats, setLetterStats] = useState<LetterStats>({});
 
     // Function to update stats from storage
@@ -60,23 +68,24 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ isRecordingPaused, o
         setLetterStats(newStats);
     }, []);
 
-    // Load initial stats and listen for storage changes
+    // Load initial stats, listen for storage changes, AND update on trigger change
     useEffect(() => {
-        updateStats();
+        updateStats(); // Update on initial load and when trigger changes
 
+        // Listener for changes from other tabs/windows
         const handleStorageChange = (event: StorageEvent) => {
-            // Check if the relevant storage key changed
             if (event.key === 'hebrewLearningStats') {
-                console.log("Storage changed, updating stats...");
+                console.log("Storage changed externally, updating stats...");
                 updateStats();
             }
         };
-
         window.addEventListener('storage', handleStorageChange);
+
+        // Cleanup function
         return () => {
             window.removeEventListener('storage', handleStorageChange);
         };
-    }, [updateStats]);
+    }, [updateStats, updateTrigger]); // Add updateTrigger to dependencies
 
     const handleReset = () => {
         if (window.confirm("Are you sure you want to reset all learning history? This cannot be undone.")) {
