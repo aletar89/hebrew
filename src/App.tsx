@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useCallback, useState } from 'react'
 import './App.css'
 import { HebrewLetterItem, processImageModules } from './utils/imageUtils';
-import { getRandomElement, shuffleArray } from './utils/arrayUtils';
+import { shuffleArray } from './utils/arrayUtils';
 import { gameReducer, initialState, ExerciseType } from './state/gameReducer';
 import { ScoreDisplay } from './components/ScoreDisplay';
 import { InstructionDisplay } from './components/InstructionDisplay';
@@ -9,7 +9,8 @@ import { FeedbackDisplay } from './components/FeedbackDisplay';
 import { GameArea } from './components/GameArea';
 import { NextRoundButton } from './components/NextRoundButton';
 import { StatsDisplay } from './components/StatsDisplay';
-import { saveSelection, SelectionRecord } from './utils/storageUtils';
+import { saveSelection, SelectionRecord, getSelectionHistory } from './utils/storageUtils';
+import { calculateLetterWeights, getWeightedRandomLetter } from './utils/spacedRepetitionUtils';
 
 // --- Build-time Data Processing ---
 
@@ -38,13 +39,8 @@ function App() {
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [selectionCounter, setSelectionCounter] = useState(0);
 
-  const handleTogglePause = () => {
-    setIsRecordingPaused(prev => !prev);
-  };
-
-  const triggerStatsUpdate = () => {
-    setSelectionCounter(count => count + 1);
-  };
+  const handleTogglePause = () => setIsRecordingPaused(prev => !prev);
+  const triggerStatsUpdate = () => setSelectionCounter(count => count + 1);
 
   return (
     <div className="app-container">
@@ -53,9 +49,6 @@ function App() {
         availableLetters={initialAvailableLetters}
         isRecordingPaused={isRecordingPaused}
         onSelectionSave={triggerStatsUpdate}
-      />
-      <StatsDisplay
-        isRecordingPaused={isRecordingPaused}
         onTogglePause={handleTogglePause}
         updateTrigger={selectionCounter}
       />
@@ -70,11 +63,16 @@ interface LetterPictureMatchProps {
   availableLetters: string[];
   isRecordingPaused: boolean;
   onSelectionSave: () => void;
+  onTogglePause: () => void;
+  updateTrigger: number;
 }
 
-function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused, onSelectionSave }: LetterPictureMatchProps) {
+function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused, onSelectionSave, onTogglePause, updateTrigger }: LetterPictureMatchProps) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
+  const [showStats, setShowStats] = useState(false);
+
+  const handleToggleStats = () => setShowStats(prev => !prev);
 
   // --- Game Logic Callbacks ---
 
@@ -86,42 +84,72 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
     console.log("New Question ID (Timestamp):", newQuestionTimestamp);
     dispatch({ type: 'RESET_FEEDBACK' }); // Reset feedback immediately
 
+    // Filter letters that actually have images loaded
     const lettersWithImages = availableLetters.filter(letter =>
         letterGroups[letter] && letterGroups[letter].length > 0
     );
-
+    
     if (lettersWithImages.length === 0) {
       dispatch({ type: 'SET_ERROR', payload: "No Hebrew letter images available to start a round." });
       return;
     }
 
-    // Generate Round Data
+    // --- Spaced Repetition Logic ---
+    console.log("Calculating weights for next round...");
+    const history = getSelectionHistory();
+    const weightedLetters = calculateLetterWeights(history, lettersWithImages);
+    const selectedLetter = getWeightedRandomLetter(weightedLetters);
+
+    if (!selectedLetter) {
+        // Fallback if weighted random somehow fails
+        console.error("Weighted random selection failed. Falling back to uniform random.");
+        const fallbackIndex = Math.floor(Math.random() * lettersWithImages.length);
+        const fallbackLetter = lettersWithImages[fallbackIndex];
+        if (!fallbackLetter) {
+             dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for the round." });
+             return;
+        }
+         // Manually select the fallback letter (need to re-assign to satisfy TypeScript)
+         // This block is just a safety net, ideally getWeightedRandomLetter handles it.
+         dispatch({ type: 'START_ROUND', payload: { currentLetter: fallbackLetter } }); // Trigger state update
+         return; // Or proceed with fallbackLetter assigned below? For simplicity, let's re-assign if !selectedLetter
+    }
+    console.log(`Selected letter based on weights: ${selectedLetter}`);
+    // --- End Spaced Repetition Logic ---
+
     const newExerciseType = Math.random() < 0.5 ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.PICTURE_TO_LETTER;
-    const selectedLetter = getRandomElement(lettersWithImages);
-    if (!selectedLetter) return; // Should not happen
+    // const selectedLetter = getRandomElement(lettersWithImages); // Replaced by weighted selection
 
-    const letterImages = letterGroups[selectedLetter];
-    if (!letterImages || letterImages.length === 0) return; // Safety check
+    const letterImages = letterGroups[selectedLetter]; // Use the weighted selected letter
+    if (!letterImages || letterImages.length === 0) { // Safety check for the selected letter
+         dispatch({ type: 'SET_ERROR', payload: `No images found for selected letter ${selectedLetter}.` });
+         return;
+    }
 
-    const selectedImage = getRandomElement(letterImages);
-    if (!selectedImage) return; // Safety check
+    // Use standard Math.random() for selecting the *image* for the chosen letter
+    const selectedImage = letterImages[Math.floor(Math.random() * letterImages.length)];
+    if (!selectedImage) { // Should be redundant if letterImages check passed
+         dispatch({ type: 'SET_ERROR', payload: `Failed to select an image for letter ${selectedLetter}.` });
+         return;
+    }
 
+    // --- Generate Round Options (Logic remains the same, uses selectedLetter) ---
     let roundImageOptions: HebrewLetterItem[] = [];
     let roundLetterOptions: string[] = [];
 
     if (newExerciseType === ExerciseType.LETTER_TO_PICTURE) {
-        // Generate image options (correct + 2 incorrect)
         const incorrectOptions: HebrewLetterItem[] = [];
         const otherLetters = lettersWithImages.filter(l => l !== selectedLetter);
         const shuffledOtherLetters = shuffleArray(otherLetters);
-
         for(let i = 0; i < Math.min(2, shuffledOtherLetters.length); i++) {
             const incorrectLetter = shuffledOtherLetters[i];
             const incorrectImages = letterGroups[incorrectLetter];
-            const incorrectImage = getRandomElement(incorrectImages);
-            if (incorrectImage) incorrectOptions.push(incorrectImage);
+            // Ensure we get a valid image
+            if (incorrectImages && incorrectImages.length > 0) {
+                 const incorrectImage = incorrectImages[Math.floor(Math.random() * incorrectImages.length)];
+                 if (incorrectImage) incorrectOptions.push(incorrectImage);
+            }
         }
-         // Fill remaining slots with different images from the *same* letter if needed
          if (incorrectOptions.length < 2) {
             const otherImagesFromSameLetter = letterImages.filter(img => img.word !== selectedImage.word);
             const shuffledSameLetterImages = shuffleArray(otherImagesFromSameLetter);
@@ -130,27 +158,25 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
             }
         }
         roundImageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
-
     } else { // PICTURE_TO_LETTER
-        // Generate letter options (correct + 2 incorrect)
         const otherLetters = lettersWithImages.filter(l => l !== selectedLetter);
         const shuffledOtherLetters = shuffleArray(otherLetters);
         const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
         roundLetterOptions = shuffleArray([selectedLetter, ...finalIncorrectLetters]);
     }
+    // --- End Generate Round Options ---
 
-    // Dispatch action to update state with the new round data
     dispatch({
       type: 'START_ROUND',
       payload: {
         exerciseType: newExerciseType,
-        currentLetter: selectedLetter,
+        currentLetter: selectedLetter, // Use the weighted selected letter
         correctImageItem: selectedImage,
         imageOptions: roundImageOptions,
         letterOptions: roundLetterOptions,
       }
     });
-  }, [availableLetters, letterGroups]); // Dependencies: Available data
+  }, [availableLetters, letterGroups]);
 
   // --- Effects ---
 
@@ -162,26 +188,29 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
       dispatch({ type: 'SET_ERROR', payload: "No Hebrew letter images found in '/public/images/'. Please add images and rebuild." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once
+  }, []);
 
-  // Effect to automatically start a new round after a correct answer
+  // Effect to automatically start a new round after *any* answer is selected
   useEffect(() => {
     let timer: number | undefined;
-    if (state.isCorrect === true) {
+    // If an answer has been selected (correct or incorrect)
+    if (state.isCorrect !== null) {
+      console.log(`Answer selected (Correct: ${state.isCorrect}). Starting next round soon...`);
       timer = setTimeout(() => {
         startNewRound();
-      }, 2000); // Delay
+      }, 2000); // Delay before next round
     }
-    return () => clearTimeout(timer); // Cleanup timeout
-  }, [state.isCorrect, startNewRound]);
+    // Cleanup function to clear timeout if component unmounts or state changes before timeout finishes
+    return () => clearTimeout(timer);
+  }, [state.isCorrect, startNewRound]); // Depend on isCorrect and the memoized startNewRound
 
   // --- Event Handlers ---
 
   const handleImageSelect = (option: HebrewLetterItem) => {
-    if (state.isCorrect === true) return; // Prevent clicking after correct answer
+    // Prevent multiple selections in the same round by checking if feedback is already shown
+    if (state.isCorrect !== null) return;
     const isSelectionCorrect = state.correctImageItem?.letter === option.letter;
 
-    // Save selection if not paused
     if (!isRecordingPaused && state.correctImageItem && currentQuestionId > 0) {
         const record: SelectionRecord = {
             timestamp: Date.now(),
@@ -199,11 +228,11 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
   };
 
   const handleLetterSelect = (letter: string) => {
-     if (state.isCorrect === true) return; // Prevent clicking after correct answer
+    // Prevent multiple selections in the same round by checking if feedback is already shown
+    if (state.isCorrect !== null) return;
     const isSelectionCorrect = state.currentLetter === letter;
 
-     // Save selection if not paused
-     if (!isRecordingPaused && state.currentLetter && currentQuestionId > 0) {
+    if (!isRecordingPaused && state.currentLetter && currentQuestionId > 0) {
         const record: SelectionRecord = {
             timestamp: Date.now(),
             questionId: currentQuestionId,
@@ -243,21 +272,37 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
 
   // Render the game using child components
   return (
-    <div className="letter-match-container">
-      <InstructionDisplay exerciseType={state.exerciseType} />
-      <ScoreDisplay score={state.score} />
-      <div className="game-content">
-        <GameArea
-          gameState={state}
-          onImageSelect={handleImageSelect}
-          onLetterSelect={handleLetterSelect}
-        />
-        <div className="feedback-container">
-          <FeedbackDisplay isCorrect={state.isCorrect} />
+    <>
+        <div className="letter-match-container">
+            <InstructionDisplay exerciseType={state.exerciseType} />
+            <ScoreDisplay score={state.score} />
+            <div className="game-content">
+                <GameArea
+                    gameState={state}
+                    onImageSelect={handleImageSelect}
+                    onLetterSelect={handleLetterSelect}
+                />
+                <div className="feedback-container">
+                    <FeedbackDisplay isCorrect={state.isCorrect} />
+                </div>
+                <div className="game-controls-container">
+                    <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
+                    <button onClick={handleToggleStats} className="new-letter-button">
+                        {showStats ? 'Hide Stats' : 'Show Stats'}
+                    </button>
+                </div>
+            </div>
         </div>
-        <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
-      </div>
-    </div>
+
+        {showStats && (
+            <StatsDisplay
+                isRecordingPaused={isRecordingPaused}
+                onTogglePause={onTogglePause}
+                updateTrigger={updateTrigger}
+                allAvailableLetters={availableLetters}
+            />
+        )}
+    </>
   );
 }
 

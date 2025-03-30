@@ -2,118 +2,98 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     getSelectionHistory,
     clearSelectionHistory,
-    SelectionRecord
 } from '../utils/storageUtils';
-import { hebrewLetterMap } from '../utils/imageUtils';
+import {
+    LetterPerformance,
+    getLetterPerformance,
+    MIN_WEIGHT,
+    INCORRECT_PENALTY_MULTIPLIER,
+    LOW_CONFIDENCE_BOOST_THRESHOLD,
+    LOW_CONFIDENCE_BOOST_MULTIPLIER
+} from '../utils/spacedRepetitionUtils';
 
 interface StatsDisplayProps {
     isRecordingPaused: boolean;
     onTogglePause: () => void;
     updateTrigger: number;
+    allAvailableLetters: string[];
 }
 
-interface LetterStat {
-    correct: number;
-    incorrect: number;
-}
-
-type LetterStats = Record<string, LetterStat>;
-
-// Function to calculate stats from history
-// Excludes multiple identical wrong answers for the same question round
-const calculateLetterStats = (history: SelectionRecord[]): LetterStats => {
-    const stats: LetterStats = {};
-    // Use number for questionId in the key
-    const processedAnswers = new Set<string>(); // Store "questionId|selectedAnswer"
-
-    // Initialize stats for all known letters
-    Object.values(hebrewLetterMap).forEach(letter => {
-        stats[letter] = { correct: 0, incorrect: 0 };
-    });
-
-    history.forEach(record => {
-        // Ensure questionId is a number before creating the key
-        if (typeof record.questionId === 'number') {
-            const answerKey = `${record.questionId}|${record.selectedAnswer}`;
-
-            // Only process if this specific answer hasn't been processed for this question
-            if (!processedAnswers.has(answerKey)) {
-                if (stats[record.targetLetter]) { // Ensure the target letter exists in our map
-                    if (record.isCorrect) {
-                        stats[record.targetLetter].correct += 1;
-                    } else {
-                        stats[record.targetLetter].incorrect += 1;
-                    }
-                }
-                // Mark this specific answer for this question as processed
-                processedAnswers.add(answerKey);
-            }
-        } else {
-            // Log or handle records with invalid questionId if necessary
-            console.warn("Skipping record with invalid questionId:", record);
+// Helper function to calculate display weight (mirroring logic in calculateLetterWeights)
+const calculateDisplayWeight = (perf: LetterPerformance): number => {
+    let weight = 1.0; // Base weight
+    if (perf.totalAttempts > 0) {
+        const successRate = perf.correct / perf.totalAttempts;
+        weight *= (1.0 + (1.0 - successRate));
+        if (perf.lastAttemptCorrect === false) {
+            weight *= INCORRECT_PENALTY_MULTIPLIER;
         }
-    });
-    console.log("Calculated Stats:", stats);
-    return stats;
+    } else {
+        weight *= LOW_CONFIDENCE_BOOST_MULTIPLIER; // Boost never attempted
+    }
+    if (perf.totalAttempts < LOW_CONFIDENCE_BOOST_THRESHOLD) {
+         weight *= LOW_CONFIDENCE_BOOST_MULTIPLIER; // Boost low confidence
+    }
+    return Math.max(MIN_WEIGHT, weight);
 };
 
-export const StatsDisplay: React.FC<StatsDisplayProps> = ({ isRecordingPaused, onTogglePause, updateTrigger }) => {
-    const [letterStats, setLetterStats] = useState<LetterStats>({});
+export const StatsDisplay: React.FC<StatsDisplayProps> = ({ isRecordingPaused, onTogglePause, updateTrigger, allAvailableLetters }) => {
+    const [performanceData, setPerformanceData] = useState<Record<string, LetterPerformance>>({});
 
-    // Function to update stats from storage
-    const updateStats = useCallback(() => {
-        console.log("Updating stats display...");
+    const updatePerformanceData = useCallback(() => {
+        console.log("Updating performance data display...");
         const history = getSelectionHistory();
-        const newStats = calculateLetterStats(history);
-        setLetterStats(newStats);
-    }, []);
+        const perfData = getLetterPerformance(history, allAvailableLetters);
+        setPerformanceData(perfData);
+    }, [allAvailableLetters]);
 
-    // Load initial stats, listen for storage changes, AND update on trigger change
     useEffect(() => {
-        updateStats(); // Update on initial load and when trigger changes
-
-        // Listener for changes from other tabs/windows
+        updatePerformanceData();
         const handleStorageChange = (event: StorageEvent) => {
             if (event.key === 'hebrewLearningStats') {
-                console.log("Storage changed externally, updating stats...");
-                updateStats();
+                console.log("Storage changed externally, updating performance data...");
+                updatePerformanceData();
             }
         };
         window.addEventListener('storage', handleStorageChange);
-
-        // Cleanup function
         return () => {
             window.removeEventListener('storage', handleStorageChange);
         };
-    }, [updateStats, updateTrigger]); // Add updateTrigger to dependencies
+    }, [updatePerformanceData, updateTrigger]);
 
     const handleReset = () => {
         if (window.confirm("Are you sure you want to reset all learning history? This cannot be undone.")) {
             clearSelectionHistory();
-            updateStats(); // Recalculate stats (will be empty)
+            updatePerformanceData();
         }
     };
 
-    // Use useMemo to create the sorted list of letters only when stats change
-    const sortedLetters = useMemo(() => {
-        return Object.entries(letterStats)
-                     .filter(([, stat]) => stat.correct > 0 || stat.incorrect > 0) // Only show letters with attempts
-                     .sort(([letterA], [letterB]) => letterA.localeCompare(letterB)); // Sort alphabetically
-    }, [letterStats]);
+    const tableData = useMemo(() => {
+        const allPerformanceEntries = Object.entries(performanceData);
+        const totalWeightSum = allPerformanceEntries.reduce((sum, [, perf]) => sum + calculateDisplayWeight(perf), 0);
+
+        return allPerformanceEntries
+            .map(([letter, perf]) => {
+                const displayWeight = calculateDisplayWeight(perf);
+                const probability = totalWeightSum > 0 ? Math.round((displayWeight / totalWeightSum) * 100) : 0;
+                return {
+                    letter,
+                    ...perf,
+                    displayWeight: parseFloat(displayWeight.toFixed(2)),
+                    probability: probability,
+                };
+            })
+            .sort((a, b) => b.probability - a.probability);
+    }, [performanceData]);
 
     const totalAttempts = useMemo(() => {
-        return sortedLetters.reduce((sum, [, stat]) => sum + stat.correct + stat.incorrect, 0);
-    }, [sortedLetters]);
-
+        return Object.values(performanceData).reduce((sum, perf) => sum + perf.totalAttempts, 0);
+    }, [performanceData]);
 
     return (
         <div className="stats-display">
-            <h4>Learning Stats</h4>
-             <div className="stats-summary">
-                <p>Total Unique Attempts Recorded: {totalAttempts}</p>
-                {/* Optionally show overall success rate */} 
-            </div>
-            <div className="stats-controls">
+            <h4>Learning Stats & Next Letter Probability</h4>
+             <div className="stats-controls">
                 <button onClick={onTogglePause}>
                     {isRecordingPaused ? 'Resume Recording' : 'Pause Recording'}
                 </button>
@@ -121,23 +101,36 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ isRecordingPaused, o
                     Reset History
                 </button>
             </div>
-            {sortedLetters.length > 0 && (
-                <div className="letter-stats-details">
-                    <h5>Success Rate per Letter:</h5>
-                    <ul>
-                        {sortedLetters.map(([letter, stat]) => {
-                            const attempts = stat.correct + stat.incorrect;
-                            const successRate = attempts === 0 ? 0 : Math.round((stat.correct / attempts) * 100);
-                            return (
-                                <li key={letter}>
-                                    <span className="stat-letter">{letter}:</span>
-                                    <span className="stat-rate"> {successRate}%</span>
-                                    <span className="stat-counts"> ({stat.correct}/{attempts})</span>
-                                </li>
-                            );
-                        })}
-                    </ul>
+
+            {tableData.length > 0 ? (
+                <div className="stats-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Letter</th>
+                                <th>Correct</th>
+                                <th>Incorrect</th>
+                                <th>Total</th>
+                                <th>Weight</th>
+                                <th>Next Prob %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {tableData.map((item) => (
+                                <tr key={item.letter}>
+                                    <td>{item.letter}</td>
+                                    <td>{item.correct}</td>
+                                    <td>{item.incorrect}</td>
+                                    <td>{item.totalAttempts}</td>
+                                    <td>{item.displayWeight}</td>
+                                    <td>{item.probability}%</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
+            ) : (
+                 <p>No available letters found or history recorded.</p>
             )}
         </div>
     );
