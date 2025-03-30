@@ -326,8 +326,8 @@ function LetterPictureMatch() {
               
               <div className="options">
                 {options.map((option, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className={`option${isCorrect === true && option.letter === correctImageItem?.letter ? ' correct-option' : ''}${isCorrect === false && selectedOption && option.letter === selectedOption.letter ? ' incorrect-option' : ''}`}
                     onClick={() => handleOptionClick(option)}
                   >
@@ -362,12 +362,8 @@ function LetterPictureMatch() {
               <div className="letter-options">
                 {letterOptions.map((letter, index) => {
                   return (
-                    <div 
-                      key={index} 
-                      style={{ 
-                        borderWidth: '3px',
-                        borderStyle: 'solid'
-                      }}
+                    <div
+                      key={index}
                       className={`letter-option${isCorrect === true && letter === currentLetter ? ' correct-option' : ''}${isCorrect === false && selectedLetter === letter ? ' incorrect-option' : ''}`}
                       onClick={() => handleLetterClick(letter)}
                     >
