@@ -1,0 +1,8 @@
+.drawing-feedback-canvas {
+    /* position: absolute; <- Removed, set inline */
+    top: 0;
+    left: 0;
+    pointer-events: none; /* Allows clicks/touches to go through to the drawing canvas below */
+    border: 1px solid red; /* Temporary border to see its position */
+    opacity: 0.7; /* Make it slightly transparent */
+} 

@@ -1,0 +1,7 @@
+.guide-canvas-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0; /* Bottom layer */
+    pointer-events: none; /* Don't interfere with drawing */
+} 

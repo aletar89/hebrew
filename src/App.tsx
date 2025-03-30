@@ -2,7 +2,7 @@ import { useEffect, useReducer, useCallback } from 'react'
 import './App.css'
 import { HebrewLetterItem, processImageModules } from './utils/imageUtils';
 import { getRandomElement, shuffleArray } from './utils/arrayUtils';
-import { GameState, GameAction, gameReducer, initialState, ExerciseType } from './state/gameReducer';
+import { GameState, gameReducer, initialState, ExerciseType } from './state/gameReducer';
 import { ScoreDisplay } from './components/ScoreDisplay';
 import { InstructionDisplay } from './components/InstructionDisplay';
 import { FeedbackDisplay } from './components/FeedbackDisplay';
@@ -51,69 +51,112 @@ function LetterPictureMatch({ letterGroups, availableLetters }: LetterPictureMat
     console.log("Starting new round...");
     dispatch({ type: 'RESET_FEEDBACK' }); // Reset feedback immediately
 
-    const lettersWithImages = availableLetters.filter(letter =>
-        letterGroups[letter] && letterGroups[letter].length > 0
-    );
-
-    if (lettersWithImages.length === 0) {
-      dispatch({ type: 'SET_ERROR', payload: "No Hebrew letter images available to start a round." });
-      return;
+    // Use all available letters, not just those with images for drawing exercise
+    if (availableLetters.length === 0) {
+        dispatch({ type: 'SET_ERROR', payload: "No Hebrew letters available to start a round." });
+        return;
     }
 
-    // Generate Round Data
-    const newExerciseType = Math.random() < 0.5 ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.PICTURE_TO_LETTER;
-    const selectedLetter = getRandomElement(lettersWithImages);
+    // Determine Exercise Type (add DRAWING)
+    const rand = Math.random();
+    let newExerciseType: ExerciseType;
+    if (rand < 0.33) { // ~1/3 chance for DRAWING
+        newExerciseType = ExerciseType.DRAWING;
+    } else if (rand < 0.66) { // ~1/3 chance for LETTER_TO_PICTURE
+        newExerciseType = ExerciseType.LETTER_TO_PICTURE;
+    } else { // ~1/3 chance for PICTURE_TO_LETTER
+        newExerciseType = ExerciseType.PICTURE_TO_LETTER;
+    }
+
+
+    // Select a letter (needed for all types)
+    const selectedLetter = getRandomElement(availableLetters);
     if (!selectedLetter) return; // Should not happen
 
-    const letterImages = letterGroups[selectedLetter];
-    if (!letterImages || letterImages.length === 0) return; // Safety check
+    // --- Prepare Payload ---
+    let roundPayload: Partial<GameState> = {
+        exerciseType: newExerciseType,
+        currentLetter: selectedLetter,
+        // Reset other fields implicitly by dispatching START_ROUND
+    };
 
-    const selectedImage = getRandomElement(letterImages);
-    if (!selectedImage) return; // Safety check
+    // --- Specific Setup for Non-Drawing Types ---
+    if (newExerciseType !== ExerciseType.DRAWING) {
+        // Check if images are available for these types
+        const lettersWithImages = availableLetters.filter(letter =>
+            letterGroups[letter] && letterGroups[letter].length > 0
+        );
+        if (lettersWithImages.length === 0) {
+             // Fallback or error if no images for non-drawing rounds
+             console.warn("Attempted non-drawing round, but no letters have images. Falling back.");
+             // Option 1: Force DRAWING type
+             newExerciseType = ExerciseType.DRAWING;
+             roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
+             // Option 2: Show error (less ideal for gameplay)
+             // dispatch({ type: 'SET_ERROR', payload: "Cannot start non-drawing round, no letter images found." });
+             // return;
+        } else {
+             // Ensure selected letter has images if needed
+             let currentSelectedLetter = selectedLetter;
+             if (!letterGroups[currentSelectedLetter] || letterGroups[currentSelectedLetter].length === 0) {
+                 // If the randomly selected letter has no images, pick one that does
+                 const newSelectedLetter = getRandomElement(lettersWithImages);
+                 // Add a check to ensure a letter was actually selected
+                 if (!newSelectedLetter) {
+                     console.error("Failed to select a letter with images, even though some exist.");
+                     // Handle this error state appropriately, maybe dispatch an error?
+                     dispatch({ type: 'SET_ERROR', payload: "Internal error selecting letter image." });
+                     return; // Stop round setup
+                 }
+                 currentSelectedLetter = newSelectedLetter;
+                 roundPayload.currentLetter = currentSelectedLetter; // Update payload
+             }
 
-    let roundImageOptions: HebrewLetterItem[] = [];
-    let roundLetterOptions: string[] = [];
+            const letterImages = letterGroups[currentSelectedLetter];
+            const selectedImage = getRandomElement(letterImages);
+            if (!selectedImage) return; // Safety check
 
-    if (newExerciseType === ExerciseType.LETTER_TO_PICTURE) {
-        // Generate image options (correct + 2 incorrect)
-        const incorrectOptions: HebrewLetterItem[] = [];
-        const otherLetters = lettersWithImages.filter(l => l !== selectedLetter);
-        const shuffledOtherLetters = shuffleArray(otherLetters);
+            let roundImageOptions: HebrewLetterItem[] = [];
+            let roundLetterOptions: string[] = [];
 
-        for(let i = 0; i < Math.min(2, shuffledOtherLetters.length); i++) {
-            const incorrectLetter = shuffledOtherLetters[i];
-            const incorrectImages = letterGroups[incorrectLetter];
-            const incorrectImage = getRandomElement(incorrectImages);
-            if (incorrectImage) incorrectOptions.push(incorrectImage);
-        }
-         // Fill remaining slots with different images from the *same* letter if needed
-         if (incorrectOptions.length < 2) {
-            const otherImagesFromSameLetter = letterImages.filter(img => img.word !== selectedImage.word);
-            const shuffledSameLetterImages = shuffleArray(otherImagesFromSameLetter);
-            for (let i = 0; i < Math.min(2 - incorrectOptions.length, shuffledSameLetterImages.length); i++) {
-                incorrectOptions.push(shuffledSameLetterImages[i]);
+            if (newExerciseType === ExerciseType.LETTER_TO_PICTURE) {
+                const incorrectOptions: HebrewLetterItem[] = [];
+                const otherLetters = lettersWithImages.filter(l => l !== currentSelectedLetter);
+                const shuffledOtherLetters = shuffleArray(otherLetters);
+
+                for(let i = 0; i < Math.min(2, shuffledOtherLetters.length); i++) {
+                    const incorrectLetter = shuffledOtherLetters[i];
+                    const incorrectImages = letterGroups[incorrectLetter];
+                    const incorrectImage = getRandomElement(incorrectImages);
+                    if (incorrectImage) incorrectOptions.push(incorrectImage);
+                }
+                if (incorrectOptions.length < 2) {
+                    const otherImagesFromSameLetter = letterImages.filter(img => img.word !== selectedImage.word);
+                    const shuffledSameLetterImages = shuffleArray(otherImagesFromSameLetter);
+                    for (let i = 0; i < Math.min(2 - incorrectOptions.length, shuffledSameLetterImages.length); i++) {
+                        incorrectOptions.push(shuffledSameLetterImages[i]);
+                    }
+                }
+                roundImageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
+                roundPayload.correctImageItem = selectedImage;
+                roundPayload.imageOptions = roundImageOptions;
+
+            } else { // PICTURE_TO_LETTER
+                const otherLetters = lettersWithImages.filter(l => l !== currentSelectedLetter);
+                const shuffledOtherLetters = shuffleArray(otherLetters);
+                const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
+                roundLetterOptions = shuffleArray([currentSelectedLetter, ...finalIncorrectLetters]);
+                roundPayload.correctImageItem = selectedImage; // Still need this to show the image
+                roundPayload.letterOptions = roundLetterOptions;
             }
         }
-        roundImageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
-
-    } else { // PICTURE_TO_LETTER
-        // Generate letter options (correct + 2 incorrect)
-        const otherLetters = lettersWithImages.filter(l => l !== selectedLetter);
-        const shuffledOtherLetters = shuffleArray(otherLetters);
-        const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
-        roundLetterOptions = shuffleArray([selectedLetter, ...finalIncorrectLetters]);
     }
+
 
     // Dispatch action to update state with the new round data
     dispatch({
       type: 'START_ROUND',
-      payload: {
-        exerciseType: newExerciseType,
-        currentLetter: selectedLetter,
-        correctImageItem: selectedImage,
-        imageOptions: roundImageOptions,
-        letterOptions: roundLetterOptions,
-      }
+      payload: roundPayload
     });
   }, [availableLetters, letterGroups]); // Dependencies: Available data
 
@@ -186,6 +229,7 @@ function LetterPictureMatch({ letterGroups, availableLetters }: LetterPictureMat
           gameState={state}
           onImageSelect={handleImageSelect}
           onLetterSelect={handleLetterSelect}
+          dispatch={dispatch}
         />
         <div className="feedback-container">
           <FeedbackDisplay isCorrect={state.isCorrect} />

@@ -1,0 +1,8 @@
+.drawing-canvas {
+    border: 1px dashed #ccc;
+    touch-action: none; /* Prevent default touch actions like scrolling */
+    cursor: crosshair;
+    box-sizing: border-box; /* Include border in width/height */
+    /* Add background transparency if needed, although default is transparent */
+    /* background-color: transparent; */ 
+} 

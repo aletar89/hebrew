@@ -1,0 +1,20 @@
+.submit-drawing-button {
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 15px;
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.submit-drawing-button:hover:not(:disabled) {
+    background-color: #45a049;
+}
+
+.submit-drawing-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+} 

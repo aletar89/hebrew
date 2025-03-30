@@ -1,0 +1,16 @@
+.clear-drawing-button {
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 10px; /* Adjust spacing if needed */
+    margin-left: 10px; /* Add space if next to score */
+    background-color: #ff9800; /* Orange */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.clear-drawing-button:hover {
+    background-color: #f57c00;
+} 
