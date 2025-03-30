@@ -2,7 +2,7 @@ import { useEffect, useReducer, useCallback, useState } from 'react'
 import './App.css'
 import { HebrewLetterItem, processImageModules } from './utils/imageUtils';
 import { getRandomElement, shuffleArray } from './utils/arrayUtils';
-import { GameState, gameReducer, initialState, ExerciseType } from './state/gameReducer';
+import { GameState, GameAction, gameReducer, initialState, ExerciseType } from './state/gameReducer';
 import { ScoreDisplay } from './components/ScoreDisplay';
 import { InstructionDisplay } from './components/InstructionDisplay';
 import { FeedbackDisplay } from './components/FeedbackDisplay';
@@ -68,7 +68,7 @@ interface LetterPictureMatchProps {
 }
 
 function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused, onSelectionSave, onTogglePause, updateTrigger }: LetterPictureMatchProps) {
-  const [state, dispatch] = useReducer<React.Reducer<GameState, any>>(gameReducer, initialState);
+  const [state, dispatch] = useReducer<React.Reducer<GameState, GameAction>>(gameReducer, initialState);
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
   const [showStats, setShowStats] = useState(false);
 
@@ -297,7 +297,7 @@ function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused,
                     <FeedbackDisplay isCorrect={state.isCorrect} />
                 </div>
                 <div className="game-controls-container">
-                    <NextRoundButton onClick={startNewRound} />
+                    <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
                     <button onClick={handleToggleStats} className="new-letter-button">
                         {showStats ? 'Hide Stats' : 'Show Stats'}
                     </button>
