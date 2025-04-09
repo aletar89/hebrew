@@ -158,9 +158,11 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                         <div
                             key={`${option.word}-${index}`} // Use a more stable key if possible
                             className={`option${
-                                isRoundCorrect === true && option.letter === correctImageItem?.letter ? ' correct-option' : ''
+                                isRoundCorrect === true && option.letter === selectedOption?.letter ? ' correct-option' : ''
                                 }${
-                                isRoundCorrect === false && selectedOption && option.letter === selectedOption.letter ? ' incorrect-option' : ''
+                                isRoundCorrect === false && option.letter === selectedOption?.letter ? ' incorrect-option' : ''
+                                }${
+                                isRoundCorrect === false && option.letter === correctImageItem?.letter ? ' highlight-correct' : ''
                                 }`}
                             onClick={() => onImageSelect(option)}
                         >
@@ -192,9 +194,11 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                         <div
                             key={`${letter}-${index}`}
                             className={`letter-option${
-                                isRoundCorrect === true && letter === currentLetter ? ' correct-option' : ''
+                                isRoundCorrect === true && letter === selectedLetter ? ' correct-option' : ''
                                 }${
-                                isRoundCorrect === false && selectedLetter === letter ? ' incorrect-option' : ''
+                                isRoundCorrect === false && letter === selectedLetter ? ' incorrect-option' : ''
+                                }${
+                                isRoundCorrect === false && letter === currentLetter ? ' highlight-correct' : ''
                                 }`}
                             onClick={() => onLetterSelect(letter)}
                         >
