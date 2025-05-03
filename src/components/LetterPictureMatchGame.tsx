@@ -159,7 +159,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
   // Effect to trigger confetti on score milestones
   useEffect(() => {
-    if (state.score > 0 && state.score % 5 === 0) {
+    if (state.score > 0 && state.score % 2 === 0) {
       console.log(`Score milestone reached: ${state.score}. Triggering confetti boom!`);
 
       // Calculate confetti origin from ScoreDisplay position
@@ -272,19 +272,21 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
   return (
     <>
-        {/* Render Confetti conditionally - it will run its effect once when mounted */}
+        {/* Confetti Container with high z-index */}
         {showConfetti && (
-          <ConfettiBoom
-            mode="boom"
-            x={confettiOrigin.x} // Set horizontal origin
-            y={confettiOrigin.y} // Set vertical origin
-            particleCount={200} // More particles
-            shapeSize={16} // Bigger particles
-            deg={270} // Initial upward angle
-            spreadDeg={90} // Wider spread
-            launchSpeed={1.5} // Slower launch
-            effectCount={1} // Only one boom
-          />
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999, pointerEvents: 'none' }}>
+            <ConfettiBoom
+              mode="boom"
+              x={confettiOrigin.x} // Set horizontal origin
+              y={confettiOrigin.y} // Set vertical origin
+              particleCount={200} // More particles
+              shapeSize={32} // Bigger particles
+              deg={90} // Initial upward angle
+              spreadDeg={60} // Wider spread
+              launchSpeed={1.3} // Slower launch
+              effectCount={1} // Only one boom
+            />
+          </div>
         )}
         <div className="letter-match-container">
             <InstructionDisplay exerciseType={state.exerciseType} />
