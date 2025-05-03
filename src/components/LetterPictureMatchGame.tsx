@@ -10,7 +10,7 @@ import { NextRoundButton } from './NextRoundButton';
 import { StatsDisplay } from './StatsDisplay';
 import { saveSelection, SelectionRecord, getSelectionHistory } from '../utils/storageUtils'; // Adjust path
 import { calculateLetterWeights, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
-import ConfettiBoom from 'react-confetti-boom'; // <-- Add new confetti import
+import { ConfettiManager } from './ConfettiManager'; // Import the new manager
 
 // --- Game Logic Component ---
 
@@ -28,10 +28,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
   const [showStats, setShowStats] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false); // State to trigger the boom
-  const [confettiOrigin, setConfettiOrigin] = useState({ x: 0.5, y: 0.5 }); // State for confetti origin (default center)
-  const confettiTimeoutRef = useRef<number | null>(null);
-  const scoreDisplayRef = useRef<HTMLDivElement>(null); // Ref for the ScoreDisplay component
+  const scoreDisplayRef = useRef<HTMLDivElement>(null); // Keep ref for potential future use or other components
 
   const handleToggleStats = () => setShowStats(prev => !prev);
 
@@ -236,46 +233,6 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty to run only once on mount
 
-  // Effect to trigger confetti on score milestones
-  useEffect(() => {
-    if (state.score > 0 && state.score % 2 === 0) {
-      console.log(`Score milestone reached: ${state.score}. Triggering confetti boom!`);
-
-      // Calculate confetti origin from ScoreDisplay position
-      if (scoreDisplayRef.current) {
-        const rect = scoreDisplayRef.current.getBoundingClientRect();
-        const x = (rect.left + rect.width / 2) / window.innerWidth;
-        const y = (rect.top + rect.height / 2) / window.innerHeight;
-        console.log(`Setting confetti origin to x: ${x.toFixed(2)}, y: ${y.toFixed(2)}`);
-        setConfettiOrigin({ x, y });
-      } else {
-        console.warn("ScoreDisplay ref not found, using default center origin for confetti.");
-        setConfettiOrigin({ x: 0.5, y: 0.5 }); // Fallback to center
-      }
-
-      setShowConfetti(true); // Trigger the confetti component to mount
-
-      // Clear previous timeout if it exists
-      if (confettiTimeoutRef.current) {
-        clearTimeout(confettiTimeoutRef.current);
-      }
-
-      // Set a timer to unmount the confetti component after animation
-      confettiTimeoutRef.current = window.setTimeout(() => {
-        console.log("Hiding confetti component.");
-        setShowConfetti(false);
-        confettiTimeoutRef.current = null;
-      }, 1500); // 3 seconds duration (adjust if needed)
-    }
-
-    // Cleanup timeout on component unmount or if score changes before timeout finishes
-    return () => {
-      if (confettiTimeoutRef.current) {
-        clearTimeout(confettiTimeoutRef.current);
-      }
-    };
-  }, [state.score]); // Rerun effect when score changes
-
   useEffect(() => {
     let timer: number | undefined;
     // --- Condition to advance round ---
@@ -359,22 +316,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
   return (
     <>
-        {/* Confetti Container with high z-index */}
-        {showConfetti && (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999, pointerEvents: 'none' }}>
-            <ConfettiBoom
-              mode="boom"
-              x={confettiOrigin.x} // Set horizontal origin
-              y={confettiOrigin.y} // Set vertical origin
-              particleCount={200} // More particles
-              shapeSize={32} // Bigger particles
-              deg={90} // Initial upward angle
-              spreadDeg={60} // Wider spread
-              launchSpeed={1.3} // Slower launch
-              effectCount={1} // Only one boom
-            />
-          </div>
-        )}
+        {/* Add the ConfettiManager component here, passing the score */}
+        <ConfettiManager score={state.score} />
+
         <div className="letter-match-container">
             <InstructionDisplay exerciseType={state.exerciseType} />
             <ScoreDisplay score={state.score} ref={scoreDisplayRef} />
