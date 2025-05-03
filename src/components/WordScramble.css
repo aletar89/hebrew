@@ -1,0 +1,101 @@
+/* src/components/WordScramble.css */
+
+.word-scramble-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 20px; /* Spacing between elements */
+}
+
+.word-scramble-image-prompt {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.word-scramble-image-prompt .target-image {
+    max-width: 200px;
+    max-height: 150px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.word-scramble-slots {
+    display: flex;
+    flex-direction: row-reverse; /* Right-to-left for Hebrew */
+    justify-content: center;
+    align-items: center;
+    gap: 8px; /* Spacing between slots */
+    margin-bottom: 20px;
+    min-height: 60px; /* Ensure area has height */
+    padding: 10px;
+    border: 1px dashed #ddd;
+    border-radius: 4px;
+    width: 100%;
+    max-width: 400px; /* Limit width */
+    box-sizing: border-box;
+}
+
+.word-scramble-bank {
+    display: flex;
+    flex-direction: column; /* Stack title and letters */
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    width: 100%;
+    max-width: 400px; /* Limit width */
+    box-sizing: border-box;
+}
+
+.word-scramble-bank h3 {
+    margin: 0 0 10px 0;
+    font-size: 1em;
+    color: #555;
+}
+
+.letter-bank-items {
+    display: flex;
+    flex-direction: row-reverse; /* Right-to-left for Hebrew */
+    flex-wrap: wrap; /* Allow wrapping */
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    min-height: 50px; /* Ensure area has height */
+}
+
+.word-scramble-controls {
+    margin-top: 15px;
+}
+
+.submit-word-button {
+    padding: 10px 20px;
+    font-size: 1.1em;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.submit-word-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.submit-word-button:not(:disabled):hover {
+    background-color: #45a049;
+}
+
+/* Placeholder for empty slots */
+.empty-slot-placeholder {
+    width: 40px; /* Match DraggableLetter size */
+    height: 40px; /* Match DraggableLetter size */
+    background-color: #eeeeee;
+    border-radius: 4px;
+    border: 1px dashed #bdbdbd;
+} 

@@ -1,0 +1,22 @@
+/* src/components/DroppableSlot.css */
+
+.droppable-slot {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 45px;  /* Slightly larger than letter */
+    min-height: 45px; /* Slightly larger than letter */
+    padding: 2px; /* Padding around content */
+    border-radius: 6px;
+    /* Border and background handled inline by useDroppable based on isOver state */
+}
+
+/* Style specifically for the bank area if needed */
+.word-scramble-bank .droppable-slot {
+    border: 1px solid #ccc; /* Default border for bank */
+    background-color: #f0f0f0;
+    width: 100%; /* Make bank droppable area wide */
+    padding: 10px;
+    min-height: 60px; /* Min height for the bank droppable */
+    box-sizing: border-box;
+} 

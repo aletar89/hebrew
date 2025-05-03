@@ -1,0 +1,38 @@
+/* src/components/DraggableLetter.css */
+
+.draggable-letter {
+    display: inline-flex; /* Use inline-flex for better alignment */
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #bdbdbd;
+    border-radius: 4px;
+    background-color: #fff;
+    font-size: 1.4em;
+    font-weight: bold;
+    cursor: grab; /* Indicate draggable */
+    user-select: none; /* Prevent text selection during drag */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease, opacity 0.2s ease;
+    touch-action: none; /* Improve touch interaction */
+}
+
+.draggable-letter.dragging {
+    cursor: grabbing;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    /* Opacity and z-index handled inline by useDraggable */
+}
+
+/* Add styles for correct/incorrect feedback if needed */
+.draggable-letter.correct {
+    background-color: #d4edda; /* Light green */
+    border-color: #c3e6cb;
+}
+
+/* Removed as incorrect state is no longer passed
+.draggable-letter.incorrect {
+    background-color: #f8d7da; 
+    border-color: #f5c6cb;
+}
+*/ 

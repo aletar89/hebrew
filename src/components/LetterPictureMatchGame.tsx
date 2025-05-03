@@ -50,17 +50,42 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
     const rand = Math.random();
     let newExerciseType: ExerciseType;
-    if (rand < 0.33) {
+    // Adjust probabilities for 4 types (e.g., 0.25 each)
+    if (rand < 0.25) { // Example: 25% chance
         newExerciseType = ExerciseType.DRAWING;
-    } else if (rand < 0.66) {
+    } else if (rand < 0.50) { // Example: 25% chance
         newExerciseType = ExerciseType.LETTER_TO_PICTURE;
-    } else {
+    } else if (rand < 0.75) { // Example: 25% chance
         newExerciseType = ExerciseType.PICTURE_TO_LETTER;
+    } else { // Example: 25% chance
+        newExerciseType = ExerciseType.WORD_SCRAMBLE;
     }
+
+    // Fallback if selected type is not possible (e.g., Word Scramble needs words > 1 letter)
+    // This needs refinement based on actual data
+    const canDoWordScramble = availableLetters.some(letter =>
+        letterGroups[letter]?.some(item => item.word && item.word.length > 1 && item.word.length <= 5)
+    );
+     const canDoMatching = availableLetters.some(letter =>
+         letterGroups[letter]?.length > 0
+     );
+
+
+    if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
+        console.warn("Cannot do Word Scramble, falling back...");
+        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING; // Example fallback
+    } else if ((newExerciseType === ExerciseType.LETTER_TO_PICTURE || newExerciseType === ExerciseType.PICTURE_TO_LETTER) && !canDoMatching) {
+         console.warn("Cannot do Matching, falling back to Drawing...");
+         newExerciseType = ExerciseType.DRAWING;
+    }
+    // Add more fallback logic as needed
+
 
     let roundPayload: Partial<GameState> = { exerciseType: newExerciseType };
     let selectedLetter: string | undefined;
+    let selectedImage: HebrewLetterItem | undefined; // Define selectedImage earlier
 
+    // --- Drawing Logic ---
     if (newExerciseType === ExerciseType.DRAWING) {
         selectedLetter = getRandomElement(availableLetters);
         if (!selectedLetter) {
@@ -68,84 +93,138 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
              return;
         }
         roundPayload.currentLetter = selectedLetter;
-    } else {
-        const lettersWithImages = availableLetters.filter(letter =>
-            letterGroups[letter] && letterGroups[letter].length > 0
-        );
+        // Drawing doesn't use correctImageItem directly in the round setup
+        // Find an image for potential display later if needed, but not crucial for round start
+         const potentialImages = letterGroups[selectedLetter];
+         if (potentialImages && potentialImages.length > 0) {
+             roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
+         }
 
-        if (lettersWithImages.length === 0) {
-             console.warn("Attempted non-drawing round, but no letters have images. Falling back to DRAWING.");
+
+    } else {
+        // --- Logic for Non-Drawing Rounds (Matching & Word Scramble) ---
+
+        // Filter letters suitable for the chosen exercise type
+        let candidateLetters: string[];
+        if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
+            candidateLetters = availableLetters.filter(letter =>
+                letterGroups[letter]?.some(item => item.word && item.word.length > 1 && item.word.length <= 5)
+            );
+        } else { // LETTER_TO_PICTURE or PICTURE_TO_LETTER
+            candidateLetters = availableLetters.filter(letter =>
+                letterGroups[letter] && letterGroups[letter].length > 0
+            );
+        }
+
+
+        if (candidateLetters.length === 0) {
+             // This case should be less likely due to fallbacks above, but handle defensively
+             console.error(`No candidate letters found for exercise type ${newExerciseType}. Falling back to DRAWING.`);
              newExerciseType = ExerciseType.DRAWING;
              selectedLetter = getRandomElement(availableLetters);
              if (!selectedLetter) {
-                dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for fallback drawing round." });
-                return;
+                 dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for fallback drawing round." });
+                 return;
              }
              roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
+              // Assign a potential image for drawing's correctImageItem here too
+             const potentialImages = letterGroups[selectedLetter];
+             if (potentialImages && potentialImages.length > 0) {
+                  roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
+             }
+
         } else {
-            console.log("Calculating weights for next round (non-drawing)...");
-            const history = getSelectionHistory();
-            const weightedLetters = calculateLetterWeights(history, lettersWithImages);
-            selectedLetter = getWeightedRandomLetter(weightedLetters);
+             // Select letter using weighted random logic based on history
+             console.log(`Calculating weights for next round (${newExerciseType})...`);
+             const history = getSelectionHistory();
+             const weightedLetters = calculateLetterWeights(history, candidateLetters); // Use candidate letters
+             selectedLetter = getWeightedRandomLetter(weightedLetters);
 
-            if (!selectedLetter) {
-                console.error("Weighted random selection failed. Falling back to uniform random from lettersWithImages.");
-                selectedLetter = getRandomElement(lettersWithImages);
-                if (!selectedLetter) {
-                    dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for the round, even with fallback." });
-                    return;
-                }
-            }
-            console.log(`Selected letter based on weights: ${selectedLetter}`);
-            roundPayload.currentLetter = selectedLetter;
+             if (!selectedLetter) {
+                 console.error("Weighted random selection failed. Falling back to uniform random from candidateLetters.");
+                 selectedLetter = getRandomElement(candidateLetters);
+                 if (!selectedLetter) {
+                     dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for the round, even with fallback." });
+                     return;
+                 }
+             }
+             console.log(`Selected letter based on weights: ${selectedLetter}`);
+             roundPayload.currentLetter = selectedLetter; // Store the driving letter
 
-            const letterImages = letterGroups[selectedLetter];
-            const selectedImage = letterImages[Math.floor(Math.random() * letterImages.length)];
-             if (!selectedImage) {
-                 dispatch({ type: 'SET_ERROR', payload: `Failed to select an image for letter ${selectedLetter}.` });
+             // Select Image Item based on the selected letter
+             const possibleImages = letterGroups[selectedLetter].filter(item =>
+                 // Ensure valid word for scramble (length > 1 and <= 5)
+                 newExerciseType === ExerciseType.WORD_SCRAMBLE
+                    ? (item.word && item.word.length > 1 && item.word.length <= 5)
+                    : true
+             );
+
+             if (possibleImages.length === 0) {
+                  // This indicates an issue with filtering or data inconsistency
+                  dispatch({ type: 'SET_ERROR', payload: `No suitable images/words found for letter ${selectedLetter} and exercise type ${newExerciseType}.` });
+                  return;
+             }
+             selectedImage = possibleImages[Math.floor(Math.random() * possibleImages.length)];
+             if (!selectedImage) { // Should not happen if possibleImages is not empty
+                 dispatch({ type: 'SET_ERROR', payload: `Internal error selecting image for letter ${selectedLetter}.` });
                  return;
             }
-            roundPayload.correctImageItem = selectedImage;
+             roundPayload.correctImageItem = selectedImage; // Essential for all non-drawing types
 
-            let roundImageOptions: HebrewLetterItem[] = [];
-            let roundLetterOptions: string[] = [];
 
+            // --- Prepare Exercise-Specific Options ---
             if (newExerciseType === ExerciseType.LETTER_TO_PICTURE) {
                 const incorrectOptions: HebrewLetterItem[] = [];
-                const otherLetters = lettersWithImages.filter(l => l !== selectedLetter);
+                const otherLetters = availableLetters.filter(l => l !== selectedLetter && letterGroups[l]?.length > 0); // Ensure other letters have images
                 const shuffledOtherLetters = shuffleArray(otherLetters);
-                for(let i = 0; i < Math.min(2, shuffledOtherLetters.length); i++) {
+
+                for (let i = 0; i < Math.min(2, shuffledOtherLetters.length); i++) {
                     const incorrectLetter = shuffledOtherLetters[i];
-                    const incorrectImages = letterGroups[incorrectLetter];
-                    if (incorrectImages && incorrectImages.length > 0) {
-                         const incorrectImage = incorrectImages[Math.floor(Math.random() * incorrectImages.length)];
-                         if (incorrectImage) incorrectOptions.push(incorrectImage);
-                    }
+                    const incorrectImages = letterGroups[incorrectLetter]; // Already checked for length > 0
+                    const incorrectImage = incorrectImages[Math.floor(Math.random() * incorrectImages.length)];
+                    incorrectOptions.push(incorrectImage);
                 }
-                 if (incorrectOptions.length < 2) {
-                    const otherImagesFromSameLetter = letterImages.filter(img => img.word !== selectedImage.word);
+
+                // If not enough options from other letters, use other images from the same letter
+                 if (incorrectOptions.length < 2 && selectedImage) {
+                     const otherImagesFromSameLetter = letterGroups[selectedLetter].filter(img => img.imageUrl !== selectedImage!.imageUrl); // Use selectedImage
                     const shuffledSameLetterImages = shuffleArray(otherImagesFromSameLetter);
                     for (let i = 0; i < Math.min(2 - incorrectOptions.length, shuffledSameLetterImages.length); i++) {
                         incorrectOptions.push(shuffledSameLetterImages[i]);
                     }
                 }
-                roundImageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
-                roundPayload.imageOptions = roundImageOptions;
-            } else { // ExerciseType.PICTURE_TO_LETTER
-                const otherLetters = lettersWithImages.filter(l => l !== selectedLetter);
-                const shuffledOtherLetters = shuffleArray(otherLetters);
-                const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
-                roundLetterOptions = shuffleArray([selectedLetter, ...finalIncorrectLetters]);
-                roundPayload.letterOptions = roundLetterOptions;
+
+                roundPayload.imageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
+
+            } else if (newExerciseType === ExerciseType.PICTURE_TO_LETTER) {
+                 const otherLetters = availableLetters.filter(l => l !== selectedLetter);
+                 const shuffledOtherLetters = shuffleArray(otherLetters);
+                 const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
+                 roundPayload.letterOptions = shuffleArray([selectedLetter, ...finalIncorrectLetters]);
+
+            } else if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
+                 const targetWord = selectedImage?.word; // Get word from the selected image
+                 // Re-check length constraint here for safety, though filtering above should handle it
+                 if (!targetWord || targetWord.length <= 1 || targetWord.length > 5) {
+                      // This case should have been prevented by candidate letter filtering, but handle defensively
+                     dispatch({ type: 'SET_ERROR', payload: `Selected image for Word Scramble has invalid word: '${targetWord}' (length ${targetWord?.length}) for letter ${selectedLetter}.` });
+                     return; // Or fallback again
+                 }
+                 roundPayload.targetWord = targetWord;
+                 roundPayload.shuffledLetters = shuffleArray(targetWord.split(''));
+                 // currentArrangement is initialized by the reducer based on targetWord length
             }
         }
     }
 
+
+    // Dispatch the final payload
     dispatch({
       type: 'START_ROUND',
       payload: roundPayload
     });
-  }, [availableLetters, letterGroups]); // Removed `dispatch` from deps as it's stable
+
+  }, [availableLetters, letterGroups]); // Dependencies: letterGroups added
 
   // --- Effects ---
   useEffect(() => {
@@ -186,7 +265,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         console.log("Hiding confetti component.");
         setShowConfetti(false);
         confettiTimeoutRef.current = null;
-      }, 3000); // 3 seconds duration (adjust if needed)
+      }, 1500); // 3 seconds duration (adjust if needed)
     }
 
     // Cleanup timeout on component unmount or if score changes before timeout finishes
@@ -199,14 +278,18 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
   useEffect(() => {
     let timer: number | undefined;
-    const shouldAdvance = state.isCorrect !== null &&
-                          (state.exerciseType !== ExerciseType.DRAWING || state.isCorrect === true);
+    // --- Condition to advance round ---
+    const shouldAdvance =
+        // Always advance if correct
+        state.isCorrect === true ||
+        // Advance if incorrect, BUT NOT for Word Scramble (allow correction)
+        (state.isCorrect === false && state.exerciseType !== ExerciseType.WORD_SCRAMBLE);
 
     if (shouldAdvance) {
-      console.log(`Advancing round (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
+      console.log(`Advancing round automatically (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
       timer = setTimeout(() => {
         startNewRound();
-      }, 2000);
+      }, 2000); // Adjust delay as needed
     }
     return () => clearTimeout(timer);
   }, [state.isCorrect, state.exerciseType, startNewRound]);
@@ -234,13 +317,15 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
   const handleLetterSelect = (letter: string) => {
     if (state.isCorrect !== null) return;
-    const isSelectionCorrect = state.currentLetter === letter;
+    // Correct check: Compare selected letter with the letter of the correct image item
+    const isSelectionCorrect = state.correctImageItem?.letter === letter;
 
-    if (!isRecordingPaused && state.exerciseType !== ExerciseType.DRAWING && state.currentLetter && currentQuestionId > 0) {
+    // Recording logic needs the target letter, which is correctImageItem.letter here
+    if (!isRecordingPaused && state.exerciseType === ExerciseType.PICTURE_TO_LETTER && state.correctImageItem && currentQuestionId > 0) {
         const record: SelectionRecord = {
             timestamp: Date.now(),
             questionId: currentQuestionId,
-            targetLetter: state.currentLetter,
+            targetLetter: state.correctImageItem.letter, // Use correct target letter
             selectedAnswer: letter,
             isCorrect: isSelectionCorrect,
             exerciseType: state.exerciseType,
@@ -248,6 +333,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         saveSelection(record);
         onSelectionSave();
     }
+    // Note: The old recording logic for non-drawing might need review if currentLetter was used elsewhere incorrectly.
+    // For PICTURE_TO_LETTER, the above block handles it correctly.
 
     dispatch({ type: 'SELECT_LETTER', payload: { selected: letter, isCorrect: isSelectionCorrect } });
   };
@@ -296,13 +383,13 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     gameState={state}
                     onImageSelect={handleImageSelect}
                     onLetterSelect={handleLetterSelect}
-                    // Pass dispatch directly IF GameArea actually needs it.
-                    // Often it's better to pass specific handlers if GameArea shouldn't manage state broadly.
-                    // Let's assume for now GameArea might need it or specific actions.
                     dispatch={dispatch}
                 />
                 <div className="feedback-container">
-                    <FeedbackDisplay isCorrect={state.isCorrect} />
+                    {/* Only show text feedback for non-word-scramble types */}
+                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && (
+                        <FeedbackDisplay isCorrect={state.isCorrect} />
+                    )}
                 </div>
                 <div className="game-controls-container">
                     <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
