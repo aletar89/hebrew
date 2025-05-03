@@ -134,21 +134,45 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
              }
 
         } else {
-             // Select letter using weighted random logic based on history
-             console.log(`Calculating weights for next round (${newExerciseType})...`);
-             const history = getSelectionHistory();
-             const weightedLetters = calculateLetterWeights(history, candidateLetters); // Use candidate letters
-             selectedLetter = getWeightedRandomLetter(weightedLetters);
+             // Select letter using weighted random logic based on history FOR MATCHING GAMES
+             // For Word Scramble, use simple random selection
 
-             if (!selectedLetter) {
-                 console.error("Weighted random selection failed. Falling back to uniform random from candidateLetters.");
+             if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
+                 console.log(`Selecting random letter for Word Scramble from ${candidateLetters.length} candidates...`);
                  selectedLetter = getRandomElement(candidateLetters);
+             } else {
+                 // Use weighted random for LETTER_TO_PICTURE and PICTURE_TO_LETTER
+                 console.log(`Calculating weights for next round (${newExerciseType})...`);
+                 const history = getSelectionHistory();
+                 const weightedLetters = calculateLetterWeights(history, candidateLetters);
+                 selectedLetter = getWeightedRandomLetter(weightedLetters);
+
                  if (!selectedLetter) {
-                     dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for the round, even with fallback." });
-                     return;
+                     console.error("Weighted random selection failed. Falling back to uniform random from candidateLetters.");
+                     selectedLetter = getRandomElement(candidateLetters); // Fallback still needed
                  }
              }
-             console.log(`Selected letter based on weights: ${selectedLetter}`);
+
+             // Fallback if selection still failed (should be rare)
+             if (!selectedLetter) {
+                 console.error("Failed to select any letter for the round, even with fallback. Reverting to random DRAWING.");
+                 // Minimal payload for a drawing fallback
+                 newExerciseType = ExerciseType.DRAWING;
+                 selectedLetter = getRandomElement(availableLetters);
+                 if (!selectedLetter) {
+                     dispatch({ type: 'SET_ERROR', payload: "CRITICAL: Failed to select any letter for fallback drawing round." });
+                     return;
+                 }
+                 roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
+                 const potentialImages = letterGroups[selectedLetter];
+                 if (potentialImages && potentialImages.length > 0) {
+                     roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
+                 }
+                  dispatch({ type: 'START_ROUND', payload: roundPayload }); // Dispatch fallback round
+                  return; // Exit startNewRound early
+             }
+
+             console.log(`Selected letter: ${selectedLetter}`);
              roundPayload.currentLetter = selectedLetter; // Store the driving letter
 
              // Select Image Item based on the selected letter
