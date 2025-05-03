@@ -2,25 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import ConfettiBoom from 'react-confetti-boom';
 
 // --- Confetti Configuration ---
-const MILESTONE_INTERVAL = 1; // Trigger level up every 1 point (as per user edit)
+const MILESTONE_INTERVAL = 5; // Trigger level up every 5 points
 const CONFETTI_DURATION_MS = 1800; // Slightly shorter than round transition
 
 const confettiLevels = [
-  // Level 0 (Score 1)
+  // Level 0 
   { particleCount: 80, shapeSize: 12, launchSpeed: 1.1, spreadDeg: 45, colors: ['#FFFF00', '#FFEE00', '#FFD700'] },
-  // Level 1 (Score 2)
+  // Level 1 
   { particleCount: 120, shapeSize: 15, launchSpeed: 1.2, spreadDeg: 50, colors: ['#FFA500', '#FF8C00', '#FF7F50'] },
-  // Level 2 (Score 3)
+  // Level 2 
   { particleCount: 160, shapeSize: 18, launchSpeed: 1.3, spreadDeg: 55, colors: ['#008000', '#228B22', '#32CD32'] },
-  // Level 3 (Score 4)
+  // Level 3 
   { particleCount: 200, shapeSize: 21, launchSpeed: 1.4, spreadDeg: 60, colors: ['#0000FF', '#1E90FF', '#4169E1'] },
-  // Level 4 (Score 5)
+  // Level 4 
   { particleCount: 240, shapeSize: 24, launchSpeed: 1.5, spreadDeg: 65, colors: ['#800080', '#9932CC', '#BA55D3'] },
-  // Level 5 (Score 6)
+  // Level 5 
   { particleCount: 280, shapeSize: 28, launchSpeed: 1.6, spreadDeg: 70, colors: ['#A52A2A', '#8B4513', '#D2691E'] },
-  // Level 6 (Score 7) - Black Belt (moved due to user edit)
+  // Level 6 
   { particleCount: 350, shapeSize: 32, launchSpeed: 1.8, spreadDeg: 80, colors: ['#000000', '#2F4F4F', '#696969', '#FFFFFF'] },
-  // Level 7+ (Score 8+) - Rainbow Level! (moved due to user edit)
+  // Level 7+  Rainbow Level! 
   {
     particleCount: 320, shapeSize: 30, launchSpeed: 1.7, spreadDeg: 75,
     colors: [
