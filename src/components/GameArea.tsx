@@ -45,11 +45,12 @@ interface GameAreaProps {
     gameState: GameState;
     onImageSelect: (item: HebrewLetterItem) => void;
     onLetterSelect: (letter: string) => void;
+    onWordSelect: (word: string) => void;
     dispatch: React.Dispatch<GameAction>;
 }
 
 // Displays the core interactive area (prompt and options)
-export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, dispatch }) => {
+export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, dispatch }) => {
     const {
         exerciseType,
         currentLetter,
@@ -57,11 +58,13 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         correctImageItem,
         imageOptions,
         letterOptions,
+        wordOptions,
         targetWord,          // <- New state
         shuffledLetters,     // <- New state
         currentArrangement,  // <- New state
         selectedOption,
         selectedLetter,
+        selectedWord,
         isCorrect: isRoundCorrect
     } = gameState;
 
@@ -449,7 +452,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                 </div>
             </>
         );
-    } else { // PICTURE_TO_LETTER
+    } else if (exerciseType === ExerciseType.PICTURE_TO_LETTER) {
         if (!correctImageItem) return null; // Should not happen if gameReady is true
         return (
             <>
@@ -480,5 +483,38 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                 </div>
             </>
         );
+    } else if (exerciseType === ExerciseType.PICTURE_TO_WORD) {
+        if (!correctImageItem) return null; // Should not happen if gameReady is true
+        return (
+            <>
+                <div className="current-image">
+                    <img
+                        src={correctImageItem.imageUrl}
+                        alt={correctImageItem.word}
+                        className="target-image"
+                        onError={(e) => handleImageError(e, correctImageItem.letter)}
+                    />
+                </div>
+                <div className="word-options">
+                    {wordOptions.map((word, index) => (
+                        <div
+                            key={`${word}-${index}`}
+                            className={`word-option${
+                                isRoundCorrect === true && word === selectedWord ? ' correct-option' : ''
+                                }${
+                                isRoundCorrect === false && word === selectedWord ? ' incorrect-option' : ''
+                                }${
+                                isRoundCorrect === false && word === correctImageItem?.word ? ' highlight-correct' : ''
+                                }`}
+                            onClick={() => onWordSelect(word)}
+                        >
+                            <span className="word-text">{word}</span>
+                        </div>
+                    ))}
+                </div>
+            </>
+        );
+    } else {
+        return null; // Placeholder for unknown exercise type
     }
 };

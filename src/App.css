@@ -311,8 +311,17 @@ footer {
     height: 80px;
   }
   
+  .word-option {
+    width: 100px;
+    height: 70px;
+  }
+  
   .letter-text {
     font-size: 2.5rem;
+  }
+  
+  .word-text {
+    font-size: 1.5rem;
   }
   
   /* Base letter-option styles on mobile */
@@ -323,17 +332,25 @@ footer {
   
   /* Enhanced mobile styles for letter and picture options */
   .letter-option.correct-option,
-  .option.correct-option {
+  .option.correct-option,
+  .word-option.correct-option {
     border-width: 4px !important;
     border-color: var(--success-color) !important;
     background-color: rgba(76, 175, 80, 0.2);
   }
   
   .letter-option.incorrect-option,
-  .option.incorrect-option {
+  .option.incorrect-option,
+  .word-option.incorrect-option {
     border-width: 4px !important;
     border-color: var(--error-color) !important;
     background-color: rgba(255, 107, 107, 0.1);
+  }
+  
+  .word-option.highlight-correct {
+    border-width: 4px !important;
+    border-color: var(--success-color) !important;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
   }
 
   /* Container adjustments for mobile */
@@ -556,12 +573,12 @@ footer {
   justify-content: center;
   gap: 15px;
   margin-top: 20px;
-  min-height: 120px;
 }
 
 .letter-option {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
+  padding: 10px;
   background-color: #fff;
   border: 3px solid var(--secondary-color);
   border-radius: var(--border-radius);
@@ -594,6 +611,53 @@ footer {
   font-size: 3.5rem;
   font-weight: bold;
   color: var(--primary-color);
+}
+
+/* Word options for picture-to-word exercise */
+.word-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.word-option {
+  width: 120px;
+  height: 80px;
+  padding: 10px;
+  background-color: #fff;
+  border: 3px solid var(--secondary-color);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+/* Apply hover styles only on non-touch devices */
+@media (hover: hover) {
+  .word-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
+  }
+}
+
+/* Remove hover styles for touch devices */
+@media (hover: none) {
+  .word-option:hover {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--secondary-color);
+  }
+}
+
+.word-text {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: var(--secondary-color);
 }
 
 /* Stats Display Styles */
@@ -697,4 +761,38 @@ html, body {
     gap: 15px;
     margin-top: 20px;
     flex-wrap: wrap;
+}
+
+/* Feedback for correct and incorrect letter options */
+.letter-option.correct-option {
+  border-color: var(--success-color) !important;
+  background-color: rgba(76, 175, 80, 0.1);
+  animation: pulse 1s infinite;
+}
+
+.letter-option.highlight-correct {
+  border-color: var(--success-color) !important;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+}
+
+.letter-option.incorrect-option {
+  border-color: var(--error-color) !important;
+  opacity: 0.7;
+}
+
+/* Feedback for correct and incorrect word options */
+.word-option.correct-option {
+  border-color: var(--success-color) !important;
+  background-color: rgba(76, 175, 80, 0.1);
+  animation: pulse 1s infinite;
+}
+
+.word-option.highlight-correct {
+  border-color: var(--success-color) !important;
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+}
+
+.word-option.incorrect-option {
+  border-color: var(--error-color) !important;
+  opacity: 0.7;
 }

@@ -11,6 +11,7 @@ export const NextRoundButton: React.FC<{ onClick: () => void; exerciseType: Exer
         {/* Remove Hebrew text, keep only English */}
         {exerciseType === ExerciseType.LETTER_TO_PICTURE ? 'New Letter' : 
          exerciseType === ExerciseType.WORD_TO_PICTURE ? 'New Word' :
+         exerciseType === ExerciseType.PICTURE_TO_WORD ? 'New Picture' :
          'New Picture'}
     </button>
 ); 

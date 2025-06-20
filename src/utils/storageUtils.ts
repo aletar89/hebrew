@@ -8,6 +8,7 @@ export interface SelectionRecord {
     timestamp: number; // Time the selection was made
     questionId: number; // Timestamp when the question round started
     targetLetter: string; // The correct Hebrew letter for this question
+    targetWord?: string; // The correct Hebrew word for this question (optional)
     selectedAnswer: string; // The letter or image word the user selected
     isCorrect: boolean;
     exerciseType: string; // e.g., 'letter-to-picture'

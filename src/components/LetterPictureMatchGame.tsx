@@ -46,18 +46,37 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     }
 
     const rand = Math.random();
-    let newExerciseType: ExerciseType;
-    // Adjust probabilities: WORD_TO_PICTURE gets 90%, others split the remaining 10%
-    if (rand < 0.90) { // 90% chance
-        newExerciseType = ExerciseType.WORD_TO_PICTURE;
-    } else if (rand < 0.92) { // 2% chance
-        newExerciseType = ExerciseType.DRAWING;
-    } else if (rand < 0.94) { // 2% chance
-        newExerciseType = ExerciseType.LETTER_TO_PICTURE;
-    } else if (rand < 0.96) { // 2% chance
-        newExerciseType = ExerciseType.PICTURE_TO_LETTER;
-    } else { // 4% chance
-        newExerciseType = ExerciseType.WORD_SCRAMBLE;
+    let newExerciseType: ExerciseType = ExerciseType.PICTURE_TO_WORD; // Default fallback
+    
+    // Define weights for each exercise type (easily adjustable)
+    // The probability of each exercise = weight / totalWeight
+    // Example: If you want PICTURE_TO_WORD to be 50% and others 10% each:
+    // PICTURE_TO_WORD: 50, others: 10 each (total = 100, so 50% vs 10% each)
+    const exerciseWeights = {
+        [ExerciseType.DRAWING]: 10,
+        [ExerciseType.LETTER_TO_PICTURE]: 10,
+        [ExerciseType.PICTURE_TO_LETTER]: 10,
+        [ExerciseType.PICTURE_TO_WORD]: 10,
+        [ExerciseType.WORD_TO_PICTURE]: 10,
+        [ExerciseType.WORD_SCRAMBLE]: 10
+    };
+    
+    // Calculate total weight
+    const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
+    
+    // Calculate cumulative weights and select exercise type
+    let cumulativeWeight = 0;
+    for (const [exerciseType, weight] of Object.entries(exerciseWeights)) {
+        cumulativeWeight += weight;
+        if (rand < cumulativeWeight / totalWeight) {
+            newExerciseType = exerciseType as ExerciseType;
+            break;
+        }
+    }
+    
+    // Fallback to first exercise type if something goes wrong
+    if (!newExerciseType) {
+        newExerciseType = ExerciseType.PICTURE_TO_WORD;
     }
 
     // Fallback if selected type is not possible (e.g., Word Scramble needs words > 1 letter)
@@ -71,6 +90,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
      const canDoWordToPicture = availableLetters.some(letter =>
          letterGroups[letter] && letterGroups[letter].length >= 3
      );
+     const canDoPictureToWord = availableLetters.some(letter =>
+         letterGroups[letter] && letterGroups[letter].length >= 3
+     );
 
 
     if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
@@ -82,6 +104,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     } else if (newExerciseType === ExerciseType.WORD_TO_PICTURE && !canDoWordToPicture) {
          console.warn("Cannot do Word to Picture, falling back...");
          newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
+    } else if (newExerciseType === ExerciseType.PICTURE_TO_WORD && !canDoPictureToWord) {
+         console.warn("Cannot do Picture to Word, falling back...");
+         newExerciseType = canDoMatching ? ExerciseType.PICTURE_TO_LETTER : ExerciseType.DRAWING;
     }
     // Add more fallback logic as needed
 
@@ -297,6 +322,60 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                 roundPayload.currentLetter = selectedLetter;
                 roundPayload.correctImageItem = selectedImage;
                 roundPayload.imageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
+            } else if (newExerciseType === ExerciseType.PICTURE_TO_WORD) {
+                // Find letters that have multiple words (at least 3 for 3 options)
+                const candidateLetters = availableLetters.filter(letter =>
+                    letterGroups[letter] && letterGroups[letter].length >= 3
+                );
+
+                if (candidateLetters.length === 0) {
+                    console.warn("Cannot do Picture to Word - no letters with enough words");
+                    newExerciseType = ExerciseType.PICTURE_TO_LETTER;
+                    // Fallback logic will be handled in the next iteration
+                    return;
+                }
+
+                // Select a letter using weighted random
+                const history = getSelectionHistory();
+                const weightedLetters = calculateLetterWeights(history, candidateLetters);
+                selectedLetter = getWeightedRandomLetter(weightedLetters);
+                
+                if (!selectedLetter) {
+                    selectedLetter = getRandomElement(candidateLetters);
+                }
+
+                if (!selectedLetter) {
+                    dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for Picture to Word round." });
+                    return;
+                }
+
+                // Get all words for this letter
+                const allWordsForLetter = letterGroups[selectedLetter];
+                
+                // Select the correct word/image
+                selectedImage = getRandomElement(allWordsForLetter);
+                
+                if (!selectedImage) {
+                    dispatch({ type: 'SET_ERROR', payload: `Failed to select image for letter ${selectedLetter}.` });
+                    return;
+                }
+                
+                // Get 2 other words from the same letter as incorrect options
+                const otherWords = allWordsForLetter.filter((img: HebrewLetterItem) => img.word !== selectedImage!.word);
+                const shuffledOtherWords = shuffleArray(otherWords);
+                const incorrectWordOptions = shuffledOtherWords.slice(0, 2).map(img => img.word);
+                
+                // If we don't have enough other words, this shouldn't happen due to filtering
+                if (incorrectWordOptions.length < 2) {
+                    console.warn(`Not enough words for letter ${selectedLetter}`);
+                    newExerciseType = ExerciseType.PICTURE_TO_LETTER;
+                    // Fallback logic will be handled in the next iteration
+                    return;
+                }
+
+                roundPayload.currentLetter = selectedLetter;
+                roundPayload.correctImageItem = selectedImage;
+                roundPayload.wordOptions = shuffleArray([selectedImage.word, ...incorrectWordOptions]);
             }
         }
     }
@@ -395,6 +474,28 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     dispatch({ type: 'SELECT_LETTER', payload: { selected: letter, isCorrect: isSelectionCorrect } });
   };
 
+  const handleWordSelect = (word: string) => {
+    if (state.isCorrect !== null) return;
+    const isSelectionCorrect = state.correctImageItem?.word === word;
+
+    if (!isRecordingPaused && state.exerciseType === ExerciseType.PICTURE_TO_WORD && 
+        state.correctImageItem && currentQuestionId > 0) {
+        const record: SelectionRecord = {
+            timestamp: Date.now(),
+            questionId: currentQuestionId,
+            targetLetter: state.correctImageItem.letter,
+            targetWord: state.correctImageItem.word,
+            selectedAnswer: word,
+            isCorrect: isSelectionCorrect,
+            exerciseType: state.exerciseType,
+        };
+        saveSelection(record);
+        onSelectionSave();
+    }
+
+    dispatch({ type: 'SELECT_WORD', payload: { selected: word, isCorrect: isSelectionCorrect } });
+  };
+
   // --- Rendering ---
   if (state.error) {
     return <div className="letter-match-container error"><p>{state.error}</p></div>;
@@ -426,6 +527,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     gameState={state}
                     onImageSelect={handleImageSelect}
                     onLetterSelect={handleLetterSelect}
+                    onWordSelect={handleWordSelect}
                     dispatch={dispatch}
                 />
                 <div className="feedback-container">

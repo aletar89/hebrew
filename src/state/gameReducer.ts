@@ -5,6 +5,7 @@ import { HebrewLetterItem } from "../utils/imageUtils";
 export enum ExerciseType {
     LETTER_TO_PICTURE = 'letter-to-picture',
     PICTURE_TO_LETTER = 'picture-to-letter',
+    PICTURE_TO_WORD = 'picture-to-word',
     DRAWING = 'drawing',
     WORD_SCRAMBLE = 'word-scramble',
     WORD_TO_PICTURE = 'word-to-picture'
@@ -17,6 +18,7 @@ export interface GameState {
     correctImageItem: HebrewLetterItem | null;
     imageOptions: HebrewLetterItem[]; // Options for LETTER_TO_PICTURE and WORD_TO_PICTURE
     letterOptions: string[];         // Options for PICTURE_TO_LETTER
+    wordOptions: string[];           // Options for PICTURE_TO_WORD
     targetWord: string | null;
     shuffledLetters: string[];
     currentArrangement: (string | null)[];
@@ -24,6 +26,7 @@ export interface GameState {
     score: number;
     selectedOption: HebrewLetterItem | null; // Last selected image item
     selectedLetter: string | null;         // Last selected letter
+    selectedWord: string | null;           // Last selected word
     gameReady: boolean;
     error: string | null;
 }
@@ -32,6 +35,7 @@ export type GameAction =
     | { type: 'START_ROUND'; payload: Partial<GameState> }
     | { type: 'SELECT_IMAGE'; payload: { selected: HebrewLetterItem; isCorrect: boolean } }
     | { type: 'SELECT_LETTER'; payload: { selected: string; isCorrect: boolean } }
+    | { type: 'SELECT_WORD'; payload: { selected: string; isCorrect: boolean } }
     | { type: 'SUBMIT_DRAWING'; payload: { isCorrect: boolean } }
     | { type: 'PLACE_LETTER'; payload: { letterIndex: number; slotIndex: number } }
     | { type: 'REMOVE_LETTER'; payload: { slotIndex: number } }
@@ -49,6 +53,7 @@ export const initialState: GameState = {
     correctImageItem: null,
     imageOptions: [],
     letterOptions: [],
+    wordOptions: [],
     targetWord: null,
     shuffledLetters: [],
     currentArrangement: [],
@@ -56,6 +61,7 @@ export const initialState: GameState = {
     score: 0,
     selectedOption: null,
     selectedLetter: null,
+    selectedWord: null,
     gameReady: false,
     error: null,
 };
@@ -70,21 +76,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             const isDrawing = action.payload.exerciseType === ExerciseType.DRAWING;
             const isWordScramble = action.payload.exerciseType === ExerciseType.WORD_SCRAMBLE;
             const isWordToPicture = action.payload.exerciseType === ExerciseType.WORD_TO_PICTURE;
+            const isPictureToWord = action.payload.exerciseType === ExerciseType.PICTURE_TO_WORD;
 
             const baseState = {
                 ...state,
                 exerciseType: action.payload.exerciseType ?? state.exerciseType,
                 currentLetter: isDrawing ? action.payload.currentLetter ?? null : null,
                 currentWord: isWordToPicture ? action.payload.currentWord ?? null : null,
-                correctImageItem: (isDrawing || isWordScramble || isWordToPicture) ? (action.payload.correctImageItem ?? null) : (action.payload.correctImageItem ?? null),
+                correctImageItem: (isDrawing || isWordScramble || isWordToPicture || isPictureToWord) ? (action.payload.correctImageItem ?? null) : (action.payload.correctImageItem ?? null),
                 imageOptions: (isDrawing || isWordScramble) ? [] : (action.payload.imageOptions ?? []),
                 letterOptions: (isDrawing || isWordScramble) ? [] : (action.payload.letterOptions ?? []),
+                wordOptions: (isDrawing || isWordScramble) ? [] : (action.payload.wordOptions ?? []),
                 targetWord: isWordScramble ? action.payload.targetWord ?? null : null,
                 shuffledLetters: isWordScramble ? action.payload.shuffledLetters ?? [] : [],
                 currentArrangement: isWordScramble ? (action.payload.targetWord?.split('').map(() => null) ?? []) : [],
                 isCorrect: null,
                 selectedOption: null,
                 selectedLetter: null,
+                selectedWord: null,
                 gameReady: true,
                 error: null,
             };
@@ -94,6 +103,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             }
             if (action.payload.exerciseType === ExerciseType.WORD_TO_PICTURE) {
                 baseState.currentWord = action.payload.currentWord ?? null;
+                baseState.currentLetter = action.payload.currentLetter ?? null;
+            }
+            if (action.payload.exerciseType === ExerciseType.PICTURE_TO_WORD) {
                 baseState.currentLetter = action.payload.currentLetter ?? null;
             }
              if (action.payload.exerciseType === ExerciseType.PICTURE_TO_LETTER) {
@@ -116,6 +128,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             return {
                 ...state,
                 selectedLetter: action.payload.selected,
+                isCorrect: action.payload.isCorrect,
+                score: action.payload.isCorrect ? state.score + 1 : state.score,
+            };
+        case 'SELECT_WORD':
+            if (state.exerciseType !== ExerciseType.PICTURE_TO_WORD) return state;
+            return {
+                ...state,
+                selectedWord: action.payload.selected,
                 isCorrect: action.payload.isCorrect,
                 score: action.payload.isCorrect ? state.score + 1 : state.score,
             };
