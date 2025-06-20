@@ -56,8 +56,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         [ExerciseType.DRAWING]: 10,
         [ExerciseType.LETTER_TO_PICTURE]: 10,
         [ExerciseType.PICTURE_TO_LETTER]: 10,
-        [ExerciseType.PICTURE_TO_WORD]: 10,
-        [ExerciseType.WORD_TO_PICTURE]: 10,
+        [ExerciseType.PICTURE_TO_WORD]: 5,
+        [ExerciseType.WORD_TO_PICTURE]: 5,
         [ExerciseType.WORD_SCRAMBLE]: 10
     };
     
@@ -77,6 +77,11 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     // Fallback to first exercise type if something goes wrong
     if (!newExerciseType) {
         newExerciseType = ExerciseType.PICTURE_TO_WORD;
+        console.warn("No exercise type selected, falling back to PICTURE_TO_WORD");
+        console.warn("rand:", rand);
+        console.warn("cumulativeWeight:", cumulativeWeight);
+        console.warn("totalWeight:", totalWeight);
+        console.warn("newExerciseType:", newExerciseType);
     }
 
     // Fallback if selected type is not possible (e.g., Word Scramble needs words > 1 letter)
