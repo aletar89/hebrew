@@ -6,14 +6,16 @@ export enum ExerciseType {
     LETTER_TO_PICTURE = 'letter-to-picture',
     PICTURE_TO_LETTER = 'picture-to-letter',
     DRAWING = 'drawing',
-    WORD_SCRAMBLE = 'word-scramble'
+    WORD_SCRAMBLE = 'word-scramble',
+    WORD_TO_PICTURE = 'word-to-picture'
 }
 
 export interface GameState {
     exerciseType: ExerciseType;
     currentLetter: string | null;
+    currentWord: string | null;
     correctImageItem: HebrewLetterItem | null;
-    imageOptions: HebrewLetterItem[]; // Options for LETTER_TO_PICTURE
+    imageOptions: HebrewLetterItem[]; // Options for LETTER_TO_PICTURE and WORD_TO_PICTURE
     letterOptions: string[];         // Options for PICTURE_TO_LETTER
     targetWord: string | null;
     shuffledLetters: string[];
@@ -43,6 +45,7 @@ export type GameAction =
 export const initialState: GameState = {
     exerciseType: ExerciseType.LETTER_TO_PICTURE,
     currentLetter: null,
+    currentWord: null,
     correctImageItem: null,
     imageOptions: [],
     letterOptions: [],
@@ -66,12 +69,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         case 'START_ROUND': {
             const isDrawing = action.payload.exerciseType === ExerciseType.DRAWING;
             const isWordScramble = action.payload.exerciseType === ExerciseType.WORD_SCRAMBLE;
+            const isWordToPicture = action.payload.exerciseType === ExerciseType.WORD_TO_PICTURE;
 
             const baseState = {
                 ...state,
                 exerciseType: action.payload.exerciseType ?? state.exerciseType,
                 currentLetter: isDrawing ? action.payload.currentLetter ?? null : null,
-                correctImageItem: (isDrawing || isWordScramble) ? (action.payload.correctImageItem ?? null) : (action.payload.correctImageItem ?? null),
+                currentWord: isWordToPicture ? action.payload.currentWord ?? null : null,
+                correctImageItem: (isDrawing || isWordScramble || isWordToPicture) ? (action.payload.correctImageItem ?? null) : (action.payload.correctImageItem ?? null),
                 imageOptions: (isDrawing || isWordScramble) ? [] : (action.payload.imageOptions ?? []),
                 letterOptions: (isDrawing || isWordScramble) ? [] : (action.payload.letterOptions ?? []),
                 targetWord: isWordScramble ? action.payload.targetWord ?? null : null,
@@ -87,6 +92,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             if (action.payload.exerciseType === ExerciseType.LETTER_TO_PICTURE) {
                 baseState.currentLetter = action.payload.currentLetter ?? null;
             }
+            if (action.payload.exerciseType === ExerciseType.WORD_TO_PICTURE) {
+                baseState.currentWord = action.payload.currentWord ?? null;
+                baseState.currentLetter = action.payload.currentLetter ?? null;
+            }
              if (action.payload.exerciseType === ExerciseType.PICTURE_TO_LETTER) {
                  // CorrectImageItem is already handled above
             }
@@ -94,7 +103,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             return baseState;
         }
         case 'SELECT_IMAGE':
-            if (state.exerciseType !== ExerciseType.LETTER_TO_PICTURE) return state;
+            if (state.exerciseType !== ExerciseType.LETTER_TO_PICTURE && 
+                state.exerciseType !== ExerciseType.WORD_TO_PICTURE) return state;
             return {
                 ...state,
                 selectedOption: action.payload.selected,

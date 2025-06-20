@@ -53,6 +53,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
     const {
         exerciseType,
         currentLetter,
+        currentWord,
         correctImageItem,
         imageOptions,
         letterOptions,
@@ -404,6 +405,36 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                                 isRoundCorrect === false && option.letter === selectedOption?.letter ? ' incorrect-option' : ''
                                 }${
                                 isRoundCorrect === false && option.letter === correctImageItem?.letter ? ' highlight-correct' : ''
+                                }`}
+                            onClick={() => onImageSelect(option)}
+                        >
+                            <img
+                                src={option.imageUrl}
+                                alt={option.word}
+                                className="option-image"
+                                onError={(e) => handleImageError(e, option.letter)}
+                            />
+                        </div>
+                    ))}
+                </div>
+            </>
+        );
+    } else if (exerciseType === ExerciseType.WORD_TO_PICTURE) {
+        return (
+            <>
+                <div className="current-word">
+                    <h2>{currentWord}</h2>
+                </div>
+                <div className="options">
+                    {imageOptions.map((option, index) => (
+                        <div
+                            key={`${option.word}-${index}`}
+                            className={`option${
+                                isRoundCorrect === true && option.word === selectedOption?.word ? ' correct-option' : ''
+                                }${
+                                isRoundCorrect === false && option.word === selectedOption?.word ? ' incorrect-option' : ''
+                                }${
+                                isRoundCorrect === false && option.word === correctImageItem?.word ? ' highlight-correct' : ''
                                 }`}
                             onClick={() => onImageSelect(option)}
                         >

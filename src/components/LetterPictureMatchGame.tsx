@@ -47,14 +47,16 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
     const rand = Math.random();
     let newExerciseType: ExerciseType;
-    // Adjust probabilities for 4 types (e.g., 0.25 each)
-    if (rand < 0.25) { // Example: 25% chance
+    // Adjust probabilities: WORD_TO_PICTURE gets 90%, others split the remaining 10%
+    if (rand < 0.90) { // 90% chance
+        newExerciseType = ExerciseType.WORD_TO_PICTURE;
+    } else if (rand < 0.92) { // 2% chance
         newExerciseType = ExerciseType.DRAWING;
-    } else if (rand < 0.50) { // Example: 25% chance
+    } else if (rand < 0.94) { // 2% chance
         newExerciseType = ExerciseType.LETTER_TO_PICTURE;
-    } else if (rand < 0.75) { // Example: 25% chance
+    } else if (rand < 0.96) { // 2% chance
         newExerciseType = ExerciseType.PICTURE_TO_LETTER;
-    } else { // Example: 25% chance
+    } else { // 4% chance
         newExerciseType = ExerciseType.WORD_SCRAMBLE;
     }
 
@@ -66,6 +68,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
      const canDoMatching = availableLetters.some(letter =>
          letterGroups[letter]?.length > 0
      );
+     const canDoWordToPicture = availableLetters.some(letter =>
+         letterGroups[letter] && letterGroups[letter].length >= 3
+     );
 
 
     if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
@@ -74,6 +79,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     } else if ((newExerciseType === ExerciseType.LETTER_TO_PICTURE || newExerciseType === ExerciseType.PICTURE_TO_LETTER) && !canDoMatching) {
          console.warn("Cannot do Matching, falling back to Drawing...");
          newExerciseType = ExerciseType.DRAWING;
+    } else if (newExerciseType === ExerciseType.WORD_TO_PICTURE && !canDoWordToPicture) {
+         console.warn("Cannot do Word to Picture, falling back...");
+         newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
     }
     // Add more fallback logic as needed
 
@@ -234,6 +242,61 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                  roundPayload.targetWord = targetWord;
                  roundPayload.shuffledLetters = shuffleArray(targetWord.split(''));
                  // currentArrangement is initialized by the reducer based on targetWord length
+            } else if (newExerciseType === ExerciseType.WORD_TO_PICTURE) {
+                // Find letters that have multiple words (at least 3 for 3 options)
+                const candidateLetters = availableLetters.filter(letter =>
+                    letterGroups[letter] && letterGroups[letter].length >= 3
+                );
+
+                if (candidateLetters.length === 0) {
+                    console.warn("Cannot do Word to Picture - no letters with enough words");
+                    newExerciseType = ExerciseType.LETTER_TO_PICTURE;
+                    // Fallback logic will be handled in the next iteration
+                    return;
+                }
+
+                // Select a letter using weighted random
+                const history = getSelectionHistory();
+                const weightedLetters = calculateLetterWeights(history, candidateLetters);
+                selectedLetter = getWeightedRandomLetter(weightedLetters);
+                
+                if (!selectedLetter) {
+                    selectedLetter = getRandomElement(candidateLetters);
+                }
+
+                if (!selectedLetter) {
+                    dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for Word to Picture round." });
+                    return;
+                }
+
+                // Get all words for this letter
+                const allWordsForLetter = letterGroups[selectedLetter];
+                
+                // Select the correct word/image
+                selectedImage = getRandomElement(allWordsForLetter);
+                
+                if (!selectedImage) {
+                    dispatch({ type: 'SET_ERROR', payload: `Failed to select image for letter ${selectedLetter}.` });
+                    return;
+                }
+                
+                // Get 2 other words from the same letter as incorrect options
+                const otherWords = allWordsForLetter.filter((img: HebrewLetterItem) => img.word !== selectedImage!.word);
+                const shuffledOtherWords = shuffleArray(otherWords);
+                const incorrectOptions = shuffledOtherWords.slice(0, 2);
+                
+                // If we don't have enough other words, this shouldn't happen due to filtering
+                if (incorrectOptions.length < 2) {
+                    console.warn(`Not enough words for letter ${selectedLetter}`);
+                    newExerciseType = ExerciseType.LETTER_TO_PICTURE;
+                    // Fallback logic will be handled in the next iteration
+                    return;
+                }
+
+                roundPayload.currentWord = selectedImage.word;
+                roundPayload.currentLetter = selectedLetter;
+                roundPayload.correctImageItem = selectedImage;
+                roundPayload.imageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
             }
         }
     }
@@ -278,9 +341,21 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   // --- Event Handlers ---
   const handleImageSelect = (option: HebrewLetterItem) => {
     if (state.isCorrect !== null) return;
-    const isSelectionCorrect = state.correctImageItem?.letter === option.letter;
+    
+    // Different correctness check based on exercise type
+    let isSelectionCorrect: boolean;
+    if (state.exerciseType === ExerciseType.LETTER_TO_PICTURE) {
+        isSelectionCorrect = state.correctImageItem?.letter === option.letter;
+    } else if (state.exerciseType === ExerciseType.WORD_TO_PICTURE) {
+        isSelectionCorrect = state.correctImageItem?.word === option.word;
+    } else {
+        isSelectionCorrect = false; // Shouldn't happen
+    }
 
-    if (!isRecordingPaused && state.exerciseType !== ExerciseType.DRAWING && state.correctImageItem && currentQuestionId > 0) {
+    if (!isRecordingPaused && 
+        (state.exerciseType === ExerciseType.LETTER_TO_PICTURE || 
+         state.exerciseType === ExerciseType.WORD_TO_PICTURE) &&
+        state.correctImageItem && currentQuestionId > 0) {
         const record: SelectionRecord = {
             timestamp: Date.now(),
             questionId: currentQuestionId,

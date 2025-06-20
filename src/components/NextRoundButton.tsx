@@ -9,6 +9,8 @@ export const NextRoundButton: React.FC<{ onClick: () => void; exerciseType: Exer
         onClick={onClick}
     >
         {/* Remove Hebrew text, keep only English */}
-        {exerciseType === ExerciseType.LETTER_TO_PICTURE ? 'New Letter' : 'New Picture'}
+        {exerciseType === ExerciseType.LETTER_TO_PICTURE ? 'New Letter' : 
+         exerciseType === ExerciseType.WORD_TO_PICTURE ? 'New Word' :
+         'New Picture'}
     </button>
 ); 

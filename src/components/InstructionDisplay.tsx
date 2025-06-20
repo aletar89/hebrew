@@ -10,6 +10,11 @@ export const InstructionDisplay: React.FC<{ exerciseType: ExerciseType }> = ({ e
                 <p>התאם את האות לתמונה המתאימה</p>
                 <p>Match the letter to the correct picture</p>
             </>
+        ) : exerciseType === ExerciseType.WORD_TO_PICTURE ? (
+            <>
+                <p>התאם את המילה לתמונה המתאימה</p>
+                <p>Match the word to the correct picture</p>
+            </>
         ) : (
             <>
                 <p>התאם את התמונה לאות המתאימה</p>
