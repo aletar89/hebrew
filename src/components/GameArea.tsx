@@ -20,7 +20,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'; // Keep coordin
 // --- End dnd-kit imports ---
 
 import { GameState, ExerciseType, GameAction } from '../state/gameReducer';
-import { HebrewLetterItem } from '../utils/imageUtils';
+import { GermanLetterItem } from '../utils/imageUtils';
 import { evaluateDrawing, DrawingEvaluationResult } from '../utils/drawingUtils';
 import { DrawingCanvas } from './DrawingCanvas';
 import { GuideCanvasDisplay } from './GuideCanvasDisplay';
@@ -43,7 +43,7 @@ const CANVAS_HEIGHT = 300;
 // Props for GameArea component
 interface GameAreaProps {
     gameState: GameState;
-    onImageSelect: (item: HebrewLetterItem) => void;
+    onImageSelect: (item: GermanLetterItem) => void;
     onLetterSelect: (letter: string) => void;
     onWordSelect: (word: string) => void;
     dispatch: React.Dispatch<GameAction>;

@@ -1,14 +1,14 @@
 // src/utils/storageUtils.ts
-// Removed unused import: import { HebrewLetterItem } from "./imageUtils";
+// Removed unused import: import { GermanLetterItem } from './imageUtils';
 
-const STORAGE_KEY = 'hebrewLearningStats';
+const STORAGE_KEY = 'germanLearningStats';
 
 // Define the structure for each recorded selection
 export interface SelectionRecord {
     timestamp: number; // Time the selection was made
     questionId: number; // Timestamp when the question round started
-    targetLetter: string; // The correct Hebrew letter for this question
-    targetWord?: string; // The correct Hebrew word for this question (optional)
+    targetLetter: string; // The correct German letter for this question
+    targetWord?: string; // The correct German word for this question (optional)
     selectedAnswer: string; // The letter or image word the user selected
     isCorrect: boolean;
     exerciseType: string; // e.g., 'letter-to-picture'

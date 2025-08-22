@@ -50,7 +50,7 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ isRecordingPaused, o
     useEffect(() => {
         updatePerformanceData();
         const handleStorageChange = (event: StorageEvent) => {
-            if (event.key === 'hebrewLearningStats') {
+            if (event.key === 'germanLearningStats') {
                 console.log("Storage changed externally, updating performance data...");
                 updatePerformanceData();
             }
