@@ -1,4 +1,4 @@
-import { HebrewLetterItem } from "../utils/imageUtils";
+import { GermanLetterItem } from "../utils/imageUtils";
 
 // --- Types ---
 
@@ -15,8 +15,8 @@ export interface GameState {
     exerciseType: ExerciseType;
     currentLetter: string | null;
     currentWord: string | null;
-    correctImageItem: HebrewLetterItem | null;
-    imageOptions: HebrewLetterItem[]; // Options for LETTER_TO_PICTURE and WORD_TO_PICTURE
+    correctImageItem: GermanLetterItem | null;
+    imageOptions: GermanLetterItem[]; // Options for LETTER_TO_PICTURE and WORD_TO_PICTURE
     letterOptions: string[];         // Options for PICTURE_TO_LETTER
     wordOptions: string[];           // Options for PICTURE_TO_WORD
     targetWord: string | null;
@@ -24,7 +24,7 @@ export interface GameState {
     currentArrangement: (string | null)[];
     isCorrect: boolean | null;
     score: number;
-    selectedOption: HebrewLetterItem | null; // Last selected image item
+    selectedOption: GermanLetterItem | null; // Last selected image item
     selectedLetter: string | null;         // Last selected letter
     selectedWord: string | null;           // Last selected word
     gameReady: boolean;
@@ -33,7 +33,7 @@ export interface GameState {
 
 export type GameAction =
     | { type: 'START_ROUND'; payload: Partial<GameState> }
-    | { type: 'SELECT_IMAGE'; payload: { selected: HebrewLetterItem; isCorrect: boolean } }
+    | { type: 'SELECT_IMAGE'; payload: { selected: GermanLetterItem; isCorrect: boolean } }
     | { type: 'SELECT_LETTER'; payload: { selected: string; isCorrect: boolean } }
     | { type: 'SELECT_WORD'; payload: { selected: string; isCorrect: boolean } }
     | { type: 'SUBMIT_DRAWING'; payload: { isCorrect: boolean } }

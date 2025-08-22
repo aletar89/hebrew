@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { processImageModules, HebrewLetterItem } from './imageUtils';
+import { processImageModules, GermanLetterItem } from './imageUtils';
 
 describe('processImageModules', () => {
 
@@ -8,89 +8,90 @@ describe('processImageModules', () => {
     const result = processImageModules(imageModules);
     // Expect all known letters to be present as keys with empty arrays
     expect(Object.keys(result).length).toBeGreaterThan(20); // Check if main letters are initialized
-    expect(result['א']).toEqual([]);
-    expect(result['ב']).toEqual([]);
+    expect(result['A']).toEqual([]);
+    expect(result['B']).toEqual([]);
     // ... potentially check more letters or just the structure
   });
 
   it('should process valid image paths and group them correctly by letter', () => {
     const imageModules = {
-      '/public/images/אבא.png': '/images/אבא.png',
-      '/public/images/בית.jpeg': '/images/בית.jpeg',
-      '/public/images/ארנב.svg': '/images/ארנב.svg', // Another Aleph
-      '/public/images/גמל.gif': '/images/גמל.gif',
+      '/public/images/Apfel.png': '/images/Apfel.png',
+      '/public/images/Brot.jpeg': '/images/Brot.jpeg',
+      '/public/images/Affe.svg': '/images/Affe.svg', // Another A
+      '/public/images/Kamel.gif': '/images/Kamel.gif',
     };
     const result = processImageModules(imageModules);
 
-    expect(result['א']).toHaveLength(2);
-    expect(result['א']).toEqual(expect.arrayContaining([
-      expect.objectContaining<Partial<HebrewLetterItem>>({ letter: 'א', word: 'אבא', imageUrl: '/images/אבא.png' }),
-      expect.objectContaining<Partial<HebrewLetterItem>>({ letter: 'א', word: 'ארנב', imageUrl: '/images/ארנב.svg' })
+    expect(result['A']).toHaveLength(2);
+    expect(result['A']).toEqual(expect.arrayContaining([
+      expect.objectContaining<Partial<GermanLetterItem>>({ letter: 'A', word: 'Apfel', imageUrl: '/images/Apfel.png' }),
+      expect.objectContaining<Partial<GermanLetterItem>>({ letter: 'A', word: 'Affe', imageUrl: '/images/Affe.svg' })
     ]));
 
-    expect(result['ב']).toHaveLength(1);
-    expect(result['ב'][0]).toEqual(expect.objectContaining<Partial<HebrewLetterItem>>({ letter: 'ב', word: 'בית', imageUrl: '/images/בית.jpeg' }));
+    expect(result['B']).toHaveLength(1);
+    expect(result['B'][0]).toEqual(expect.objectContaining<Partial<GermanLetterItem>>({ letter: 'B', word: 'Brot', imageUrl: '/images/Brot.jpeg' }));
 
-    expect(result['ג']).toHaveLength(1);
-    expect(result['ג'][0]).toEqual(expect.objectContaining<Partial<HebrewLetterItem>>({ letter: 'ג', word: 'גמל', imageUrl: '/images/גמל.gif' }));
+    expect(result['K']).toHaveLength(1);
+    expect(result['K'][0]).toEqual(expect.objectContaining<Partial<GermanLetterItem>>({ letter: 'K', word: 'Kamel', imageUrl: '/images/Kamel.gif' }));
 
     // Ensure other letters are empty
-    expect(result['ד']).toEqual([]);
+    expect(result['D']).toEqual([]);
   });
 
   it('should ignore files that do not match the image extension regex', () => {
     const imageModules = {
-      '/public/images/אבא.png': '/images/אבא.png',
+      '/public/images/Apfel.png': '/images/Apfel.png',
       '/public/images/document.txt': '/images/document.txt', // Invalid extension
-      '/public/images/דג': '/images/דג',                     // No extension
+      '/public/images/Fisch': '/images/Fisch',                // No extension
     };
     const result = processImageModules(imageModules);
 
-    expect(result['א']).toHaveLength(1);
-    expect(result['א'][0].word).toBe('אבא');
-    expect(result['ד']).toEqual([]); // Should not process 'דג'
+    expect(result['A']).toHaveLength(1);
+    expect(result['A'][0].word).toBe('Apfel');
+    expect(result['F']).toEqual([]); // Should not process 'Fisch'
   });
 
-  it('should ignore files where the first character is not a recognized Hebrew letter', () => {
+  it('should ignore files where the first character is not a recognized German letter', () => {
     const imageModules = {
       '/public/images/Hello.png': '/images/Hello.png',
       '/public/images/123.jpg': '/images/123.jpg',
-      '/public/images/בית.webp': '/images/בית.webp',
+      '/public/images/Brot.webp': '/images/Brot.webp',
     };
     const result = processImageModules(imageModules);
 
-    expect(result['ב']).toHaveLength(1);
-    expect(result['ב'][0].word).toBe('בית');
-    // Check a letter that shouldn't exist based on input
-    expect(result['ה']).toEqual([]);
+    expect(result['H']).toHaveLength(1);
+    expect(result['H'][0].word).toBe('Hello');
+    expect(result['B']).toHaveLength(1);
+    expect(result['B'][0].word).toBe('Brot');
+    expect(result['1']).toBeUndefined();
   });
 
   it('should handle different valid image extensions', () => {
     const imageModules = {
-      '/public/images/תפוח.png': '/images/תפוח.png',
-      '/public/images/תמונה.jpg': '/images/תמונה.jpg',
-      '/public/images/תרנגול.jpeg': '/images/תרנגול.jpeg',
-      '/public/images/תנין.gif': '/images/תנין.gif',
-      '/public/images/תיק.svg': '/images/תיק.svg',
-      '/public/images/תות.webp': '/images/תות.webp',
+      '/public/images/Tomate.png': '/images/Tomate.png',
+      '/public/images/Tiger.jpg': '/images/Tiger.jpg',
+      '/public/images/Tasse.jpeg': '/images/Tasse.jpeg',
+      '/public/images/Trommel.gif': '/images/Trommel.gif',
+      '/public/images/Tisch.svg': '/images/Tisch.svg',
+      '/public/images/Tuer.webp': '/images/Tuer.webp',
     };
     const result = processImageModules(imageModules);
 
-    expect(result['ת']).toHaveLength(6);
-    expect(result['ת'].map(item => item.word)).toEqual(expect.arrayContaining([
-      'תפוח', 'תמונה', 'תרנגול', 'תנין', 'תיק', 'תות'
+    expect(result['T']).toHaveLength(6);
+    expect(result['T'].map(item => item.word)).toEqual(expect.arrayContaining([
+      'Tomate', 'Tiger', 'Tasse', 'Trommel', 'Tisch', 'Tuer'
     ]));
   });
 
   it('should correctly extract word even if filename contains dots before extension', () => {
     const imageModules = {
-      '/public/images/דג.זהב.png': '/images/דג.זהב.png'
+      '/public/images/Hund.haus.png': '/images/Hund.haus.png'
     };
     const result = processImageModules(imageModules);
 
-    expect(result['ד']).toHaveLength(1);
-    expect(result['ד'][0].word).toBe('דג.זהב');
-    expect(result['ד'][0].imageUrl).toBe('/images/דג.זהב.png');
+    expect(result['H']).toHaveLength(1);
+    expect(result['H'][0].word).toBe('Hund.haus');
+    expect(result['H'][0].imageUrl).toBe('/images/Hund.haus.png');
   });
 
   it('should handle paths with deeper structures (though glob pattern might need adjustment)', () => {
@@ -98,13 +99,13 @@ describe('processImageModules', () => {
     // This test assumes the glob pattern could potentially find deeper files
     // or the structure changes later.
     const imageModules = {
-      '/public/images/animals/חמור.png': '/images/animals/חמור.png'
+      '/public/images/animals/Esel.png': '/images/animals/Esel.png'
     };
     const result = processImageModules(imageModules);
 
-    expect(result['ח']).toHaveLength(1);
-    expect(result['ח'][0].word).toBe('חמור');
-    expect(result['ח'][0].imageUrl).toBe('/images/animals/חמור.png');
+    expect(result['E']).toHaveLength(1);
+    expect(result['E'][0].word).toBe('Esel');
+    expect(result['E'][0].imageUrl).toBe('/images/animals/Esel.png');
   });
 
 }); 
