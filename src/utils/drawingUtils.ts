@@ -22,7 +22,7 @@ export interface DrawingEvaluationResult {
 
 /**
  * Renders the target letter onto a hidden canvas.
- * @param letter The Hebrew letter character.
+ * @param letter The German letter character.
  * @param color The color to draw the letter in.
  * @returns A canvas element with the letter drawn, or null if canvas is not supported.
  */
@@ -54,7 +54,7 @@ export function renderTargetLetter(letter: string, color: string): HTMLCanvasEle
 /**
  * Compares the user's drawing canvas with the target letter shape.
  *
- * @param targetLetter The correct Hebrew letter.
+ * @param targetLetter The correct German letter.
  * @param userCanvas The canvas element where the user drew.
  * @returns A DrawingEvaluationResult object.
  */
