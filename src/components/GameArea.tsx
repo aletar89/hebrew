@@ -20,7 +20,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'; // Keep coordin
 // --- End dnd-kit imports ---
 
 import { GameState, ExerciseType, GameAction } from '../state/gameReducer';
-import { HebrewLetterItem } from '../utils/imageUtils';
+import { GermanLetterItem } from '../utils/imageUtils';
 import { evaluateDrawing, DrawingEvaluationResult } from '../utils/drawingUtils';
 import { DrawingCanvas } from './DrawingCanvas';
 import { GuideCanvasDisplay } from './GuideCanvasDisplay';
@@ -43,7 +43,7 @@ const CANVAS_HEIGHT = 300;
 // Props for GameArea component
 interface GameAreaProps {
     gameState: GameState;
-    onImageSelect: (item: HebrewLetterItem) => void;
+    onImageSelect: (item: GermanLetterItem) => void;
     onLetterSelect: (letter: string) => void;
     onWordSelect: (word: string) => void;
     dispatch: React.Dispatch<GameAction>;
@@ -329,7 +329,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                             className="target-image" // Reuse existing style or create new
                             onError={(e) => handleImageError(e, correctImageItem.letter)}
                         />
-                        <p>איזו מילה מתאימה לתמונה?</p>
+                        <p>Welches Wort passt zum Bild?</p>
                          {/* <p>Drag the letters to form the word for the picture.</p> */}
                     </div>
 
@@ -371,7 +371,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                                             isCorrect={null}
                                         />
                                     ))}
-                                    {bankLetterItems.length === 0 && isRoundCorrect === null && <p>(כל האותיות שובצו)</p>}
+                                    {bankLetterItems.length === 0 && isRoundCorrect === null && <p>(Alle Buchstaben platziert)</p>}
                                 </div>
                             </div>
                          </DroppableSlot>

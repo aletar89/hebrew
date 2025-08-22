@@ -1,19 +1,19 @@
-This directory needs image files for the Hebrew reading app, following this naming convention:
+This directory needs image files for the German reading app, following this naming convention:
 
-Use Hebrew words as filenames with appropriate image extensions:
-Examples: אדם.png, ארנב.jpg, בית.webp, גמל.svg, etc.
+Use German words as filenames with appropriate image extensions:
+Examples: Apfel.png, Banane.jpg, Haus.webp, Zebra.svg, etc.
 
 Supported image formats: png, jpg, jpeg, gif, svg, webp, and other standard web image formats
 
-The app supports all Hebrew letters and will automatically identify which letter the image belongs to based on the first character of the filename.
+The app supports all German letters and will automatically identify which letter the image belongs to based on the first character of the filename.
 
 Examples:
-- אדם.png - A picture of a person (adam), starting with א (Aleph)
-- ארנב.jpg - A picture of a rabbit (arnav), starting with א (Aleph)
-- בית.png - A picture of a house (bayit), starting with ב (Beth)
-- גמל.webp - A picture of a camel (gamal), starting with ג (Gimel)
+- Apfel.png - A picture of an apple, starting with A
+- Banane.jpg - A picture of a banana, starting with B
+- Haus.png - A picture of a house, starting with H
+- Zebra.webp - A picture of a zebra, starting with Z
 
 The app will automatically detect available images and only use letters that have corresponding images.
 You can add multiple images for each letter (just add more words starting with that letter), and the app will randomly select them during gameplay.
 
-The images should be clear, child-friendly illustrations that a 4-year-old can easily recognize. 
+The images should be clear, child-friendly illustrations that a 4-year-old can easily recognize.

@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useCallback, useState, useRef } from 'react';
-import { HebrewLetterItem } from '../utils/imageUtils'; // Adjust path
+import { GermanLetterItem } from '../utils/imageUtils'; // Adjust path
 import { getRandomElement, shuffleArray } from '../utils/arrayUtils'; // Adjust path
 import { GameState, gameReducer, initialState, ExerciseType } from '../state/gameReducer'; // Adjust path
 import { ScoreDisplay } from './ScoreDisplay';
@@ -15,7 +15,7 @@ import { ConfettiManager } from './ConfettiManager'; // Import the new manager
 // --- Game Logic Component ---
 
 export interface LetterPictureMatchProps {
-  letterGroups: Record<string, HebrewLetterItem[]>;
+  letterGroups: Record<string, GermanLetterItem[]>;
   availableLetters: string[];
   isRecordingPaused: boolean;
   onSelectionSave: () => void;
@@ -41,7 +41,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     dispatch({ type: 'RESET_FEEDBACK' });
 
     if (availableLetters.length === 0) {
-        dispatch({ type: 'SET_ERROR', payload: "No Hebrew letters available to start a round." });
+        dispatch({ type: 'SET_ERROR', payload: "No German letters available to start a round." });
         return;
     }
 
@@ -118,7 +118,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
     let roundPayload: Partial<GameState> = { exerciseType: newExerciseType };
     let selectedLetter: string | undefined;
-    let selectedImage: HebrewLetterItem | undefined; // Define selectedImage earlier
+    let selectedImage: GermanLetterItem | undefined; // Define selectedImage earlier
 
     // --- Drawing Logic ---
     if (newExerciseType === ExerciseType.DRAWING) {
@@ -233,7 +233,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
             // --- Prepare Exercise-Specific Options ---
             if (newExerciseType === ExerciseType.LETTER_TO_PICTURE) {
-                const incorrectOptions: HebrewLetterItem[] = [];
+                const incorrectOptions: GermanLetterItem[] = [];
                 const otherLetters = availableLetters.filter(l => l !== selectedLetter && letterGroups[l]?.length > 0); // Ensure other letters have images
                 const shuffledOtherLetters = shuffleArray(otherLetters);
 
@@ -311,7 +311,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                 }
                 
                 // Get 2 other words from the same letter as incorrect options
-                const otherWords = allWordsForLetter.filter((img: HebrewLetterItem) => img.word !== selectedImage!.word);
+                const otherWords = allWordsForLetter.filter((img: GermanLetterItem) => img.word !== selectedImage!.word);
                 const shuffledOtherWords = shuffleArray(otherWords);
                 const incorrectOptions = shuffledOtherWords.slice(0, 2);
                 
@@ -366,7 +366,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                 }
                 
                 // Get 2 other words from the same letter as incorrect options
-                const otherWords = allWordsForLetter.filter((img: HebrewLetterItem) => img.word !== selectedImage!.word);
+                const otherWords = allWordsForLetter.filter((img: GermanLetterItem) => img.word !== selectedImage!.word);
                 const shuffledOtherWords = shuffleArray(otherWords);
                 const incorrectWordOptions = shuffledOtherWords.slice(0, 2).map(img => img.word);
                 
@@ -399,7 +399,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     if (availableLetters.length > 0) {
       startNewRound();
     } else {
-      dispatch({ type: 'SET_ERROR', payload: "No Hebrew letter images found in '/public/images/'. Please add images and rebuild." });
+      dispatch({ type: 'SET_ERROR', payload: "No German letter images found in '/public/images/'. Please add images and rebuild." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty to run only once on mount
@@ -423,7 +423,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   }, [state.isCorrect, state.exerciseType, startNewRound]);
 
   // --- Event Handlers ---
-  const handleImageSelect = (option: HebrewLetterItem) => {
+  const handleImageSelect = (option: GermanLetterItem) => {
     if (state.isCorrect !== null) return;
     
     // Different correctness check based on exercise type
@@ -509,8 +509,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   if (availableLetters.length === 0 && !state.error) {
     return (
       <div className="letter-match-container error">
-        <p>No Hebrew letter images available.</p>
-        <p>Please add images to the '/public/images/' directory (e.g., אבא.png).</p>
+        <p>No German letter images available.</p>
+        <p>Please add images to the '/public/images/' directory (e.g., Apfel.png).</p>
       </div>
     );
   }

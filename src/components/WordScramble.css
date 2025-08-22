@@ -23,7 +23,7 @@
 
 .word-scramble-slots {
     display: flex;
-    flex-direction: row-reverse; /* Right-to-left for Hebrew */
+    flex-direction: row; /* Left-to-right for German */
     justify-content: center;
     align-items: center;
     gap: 8px; /* Spacing between slots */
@@ -59,7 +59,7 @@
 
 .letter-bank-items {
     display: flex;
-    flex-direction: row-reverse; /* Right-to-left for Hebrew */
+    flex-direction: row; /* Left-to-right for German */
     flex-wrap: wrap; /* Allow wrapping */
     justify-content: center;
     align-items: center;
