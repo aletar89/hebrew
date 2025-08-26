@@ -56,9 +56,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         [ExerciseType.DRAWING]: 10,
         [ExerciseType.LETTER_TO_PICTURE]: 10,
         [ExerciseType.PICTURE_TO_LETTER]: 10,
-        [ExerciseType.PICTURE_TO_WORD]: 5,
-        [ExerciseType.WORD_TO_PICTURE]: 5,
-        [ExerciseType.WORD_SCRAMBLE]: 10
+        [ExerciseType.PICTURE_TO_WORD]: 0,
+        [ExerciseType.WORD_TO_PICTURE]: 0,
+        [ExerciseType.WORD_SCRAMBLE]: 0
     };
     
     // Calculate total weight
