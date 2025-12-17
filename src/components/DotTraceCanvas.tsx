@@ -50,7 +50,7 @@ export const DotTraceCanvas: React.FC<DotTraceCanvasProps> = ({
     (indices: number[]) => {
       const segments: string[] = [];
       let current = '';
-      indices.forEach((idx, i) => {
+      indices.forEach((idx) => {
         const pt = scaledPoints[idx];
         if (!pt) return;
         const startNew = current === '' || pt.lift;
