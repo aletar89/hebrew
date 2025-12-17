@@ -24,9 +24,11 @@ import { GermanLetterItem } from '../utils/imageUtils';
 import { evaluateDrawing, DrawingEvaluationResult } from '../utils/drawingUtils';
 import { DrawingCanvas } from './DrawingCanvas';
 import { GuideCanvasDisplay } from './GuideCanvasDisplay';
+import { DotTraceCanvas } from './DotTraceCanvas';
 import { SubmitDrawingButton } from './SubmitDrawingButton';
 import { DrawingFeedbackCanvas } from './DrawingFeedbackCanvas';
 import { ClearDrawingButton } from './ClearDrawingButton.tsx';
+import { letterDotPatterns } from '../utils/letterDotPatterns';
 
 // --- Word Scramble specific components (simplified examples) ---
 import { DraggableLetter } from './DraggableLetter'; // Assume we create this
@@ -247,6 +249,30 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         else if (isActiveFromBank && isOverBank) { /* No action needed */ }
         else { /* Unhandled */ }
     };
+
+    if (exerciseType === ExerciseType.DOT_TRACING) {
+        const pattern = currentLetter ? letterDotPatterns[currentLetter] : null;
+        if (!pattern || pattern.length === 0) {
+            return <div className="loading">Keine Punkt-Vorlage fuer {currentLetter ?? 'diesen Buchstaben'}.</div>;
+        }
+
+        return (
+            <div className="dot-tracing-area">
+                <DotTraceCanvas
+                    letter={currentLetter ?? '?'}
+                    points={pattern}
+                    width={CANVAS_WIDTH}
+                    height={CANVAS_HEIGHT}
+                    onComplete={() => dispatch({ type: 'COMPLETE_TRACE' })}
+                />
+                {isRoundCorrect && (
+                    <div className="dot-tracing-success">
+                        Super gemacht! Du hast den Buchstaben in der richtigen Reihenfolge verbunden.
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     if (exerciseType === ExerciseType.DRAWING) {
         return (

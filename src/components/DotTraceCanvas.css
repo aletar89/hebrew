@@ -1,0 +1,78 @@
+.dot-trace-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot-trace-header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 320px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.dot-trace-letter {
+  font-size: 1.2rem;
+}
+
+.dot-trace-progress {
+  font-size: 0.95rem;
+  color: #4b5563;
+}
+
+.dot-trace-svg {
+  width: 100%;
+  height: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+  touch-action: none;
+}
+
+.dot-trace-ghost {
+  fill: none;
+  stroke: #e5e7eb;
+  stroke-width: 2;
+  stroke-dasharray: 8 10;
+}
+
+.dot-trace-path {
+  fill: none;
+  stroke: #111827;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dot-trace-circle {
+  stroke-width: 3;
+  cursor: pointer;
+  transition: r 0.18s ease, fill 0.18s ease, stroke 0.18s ease;
+}
+
+.dot-trace-circle.waiting {
+  fill: #fca5a5;
+  stroke: #b91c1c;
+}
+
+.dot-trace-circle.active {
+  fill: #34d399;
+  stroke: #059669;
+  r: 12;
+}
+
+.dot-trace-circle.visited {
+  fill: #9ca3af;
+  stroke: #374151;
+}
+
+.dot-trace-hint {
+  font-size: 0.95rem;
+  color: #374151;
+  text-align: center;
+  max-width: 320px;
+}

@@ -25,3 +25,17 @@
     margin-bottom: 10px;
     line-height: 1.4;
 } 
+
+.dot-tracing-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.dot-tracing-success {
+    color: #047857;
+    font-weight: 600;
+    text-align: center;
+}

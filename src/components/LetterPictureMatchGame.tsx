@@ -11,6 +11,7 @@ import { StatsDisplay } from './StatsDisplay';
 import { saveSelection, SelectionRecord, getSelectionHistory } from '../utils/storageUtils'; // Adjust path
 import { calculateLetterWeights, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
 import { ConfettiManager } from './ConfettiManager'; // Import the new manager
+import { letterDotPatterns } from '../utils/letterDotPatterns';
 
 // --- Game Logic Component ---
 
@@ -53,6 +54,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     // Example: If you want PICTURE_TO_WORD to be 50% and others 10% each:
     // PICTURE_TO_WORD: 50, others: 10 each (total = 100, so 50% vs 10% each)
     const exerciseWeights = {
+        [ExerciseType.DOT_TRACING]: 10,
         [ExerciseType.DRAWING]: 10,
         [ExerciseType.LETTER_TO_PICTURE]: 10,
         [ExerciseType.PICTURE_TO_LETTER]: 10,
@@ -98,6 +100,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
      const canDoPictureToWord = availableLetters.some(letter =>
          letterGroups[letter] && letterGroups[letter].length >= 3
      );
+     const dotTracingLetters = availableLetters.filter(letter => letterDotPatterns[letter]);
+     const canDoDotTracing = dotTracingLetters.length > 0;
 
 
     if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
@@ -112,6 +116,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     } else if (newExerciseType === ExerciseType.PICTURE_TO_WORD && !canDoPictureToWord) {
          console.warn("Cannot do Picture to Word, falling back...");
          newExerciseType = canDoMatching ? ExerciseType.PICTURE_TO_LETTER : ExerciseType.DRAWING;
+    } else if (newExerciseType === ExerciseType.DOT_TRACING && !canDoDotTracing) {
+         console.warn("Cannot do Dot Tracing, falling back to Drawing...");
+         newExerciseType = ExerciseType.DRAWING;
     }
     // Add more fallback logic as needed
 
@@ -121,7 +128,14 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     let selectedImage: GermanLetterItem | undefined; // Define selectedImage earlier
 
     // --- Drawing Logic ---
-    if (newExerciseType === ExerciseType.DRAWING) {
+    if (newExerciseType === ExerciseType.DOT_TRACING) {
+        selectedLetter = getRandomElement(dotTracingLetters.length > 0 ? dotTracingLetters : availableLetters);
+        if (!selectedLetter) {
+             dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for dot tracing round." });
+             return;
+        }
+        roundPayload.currentLetter = selectedLetter;
+    } else if (newExerciseType === ExerciseType.DRAWING) {
         selectedLetter = getRandomElement(availableLetters);
         if (!selectedLetter) {
              dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for drawing round." });
