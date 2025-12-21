@@ -12,6 +12,8 @@ import { saveSelection, SelectionRecord, getSelectionHistory } from '../utils/st
 import { calculateLetterWeights, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
 import { ConfettiManager } from './ConfettiManager'; // Import the new manager
 import { letterDotPatterns } from '../utils/letterDotPatterns';
+import { enqueueIdleTasks, preloadImage } from '../utils/preloadUtils';
+import { preloadWordAudio } from '../utils/audioUtils';
 
 // --- Game Logic Component ---
 
@@ -30,6 +32,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
   const [showStats, setShowStats] = useState(false);
   const scoreDisplayRef = useRef<HTMLDivElement>(null); // Keep ref for potential future use or other components
+  const hasQueuedIdlePreload = useRef(false);
 
   const handleToggleStats = () => setShowStats(prev => !prev);
 
@@ -417,6 +420,28 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty to run only once on mount
+
+  useEffect(() => {
+    if (state.exerciseType !== ExerciseType.PICTURE_TO_LETTER || !state.correctImageItem) {
+      return;
+    }
+
+    preloadImage(state.correctImageItem.imageUrl);
+    preloadWordAudio(state.correctImageItem.word);
+
+    if (hasQueuedIdlePreload.current) {
+      return;
+    }
+
+    const allItems = Object.values(letterGroups).flat();
+    const idleTasks = allItems.flatMap(item => [
+      () => preloadImage(item.imageUrl),
+      () => preloadWordAudio(item.word),
+    ]);
+
+    enqueueIdleTasks(idleTasks);
+    hasQueuedIdlePreload.current = true;
+  }, [state.correctImageItem, state.exerciseType, letterGroups]);
 
   useEffect(() => {
     let timer: number | undefined;

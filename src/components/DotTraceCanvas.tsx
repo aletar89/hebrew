@@ -163,12 +163,17 @@ export const DotTraceCanvas: React.FC<DotTraceCanvasProps> = ({
   );
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    e.preventDefault();
+    if (e.pointerType === 'touch') {
+      e.preventDefault();
+    }
     const { touched } = handleVisitIfClose(e.clientX, e.clientY);
     if (touched) setIsDragging(true);
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === 'touch') {
+      e.preventDefault();
+    }
     if (!isDragging) return;
     handleVisitIfClose(e.clientX, e.clientY);
   };
@@ -198,7 +203,9 @@ export const DotTraceCanvas: React.FC<DotTraceCanvasProps> = ({
   };
 
   const handleCirclePointerDown = (idx: number) => (e: React.PointerEvent) => {
-    e.preventDefault();
+    if (e.pointerType === 'touch') {
+      e.preventDefault();
+    }
     if (idx === activeIndex) {
       setIsDragging(true);
       const nextHasLift = scaledPoints[activeIndex + 1]?.lift === true;
@@ -206,6 +213,23 @@ export const DotTraceCanvas: React.FC<DotTraceCanvasProps> = ({
       handlePointSelect(idx, nextHasLift);
     }
   };
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const preventTouchScroll = (event: TouchEvent) => {
+      event.preventDefault();
+    };
+
+    svg.addEventListener('touchstart', preventTouchScroll, { passive: false });
+    svg.addEventListener('touchmove', preventTouchScroll, { passive: false });
+
+    return () => {
+      svg.removeEventListener('touchstart', preventTouchScroll);
+      svg.removeEventListener('touchmove', preventTouchScroll);
+    };
+  }, []);
 
   return (
     <div className="dot-trace-container" style={{ width, maxWidth: '100%' }}>

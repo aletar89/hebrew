@@ -52,6 +52,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, onD
     };
 
     const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
+        if (event.nativeEvent instanceof TouchEvent) {
+            event.preventDefault();
+        }
         const pos = getCoordinates(event);
         if (!pos) return;
         setIsDrawing(true);
@@ -59,6 +62,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, onD
     };
 
     const draw = (event: React.MouseEvent | React.TouchEvent) => {
+        if (event.nativeEvent instanceof TouchEvent) {
+            event.preventDefault();
+        }
         if (!isDrawing) return;
         const currentPos = getCoordinates(event);
         if (!currentPos || !lastPos) return;
@@ -87,23 +93,23 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ width, height, onD
         }
     };
 
-    // Prevent page scroll on touch devices while drawing
+    // Prevent page scroll/pull-to-refresh on touch devices while interacting with the canvas
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const preventScroll = (e: TouchEvent) => {
-            if (isDrawing) {
-                e.preventDefault();
-            }
+            e.preventDefault();
         };
 
+        canvas.addEventListener('touchstart', preventScroll, { passive: false });
         canvas.addEventListener('touchmove', preventScroll, { passive: false });
 
         return () => {
+            canvas.removeEventListener('touchstart', preventScroll);
             canvas.removeEventListener('touchmove', preventScroll);
         };
-    }, [isDrawing]);
+    }, []);
 
     return (
         <canvas

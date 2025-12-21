@@ -65,6 +65,28 @@ The app requires images for each German letter. Place them in the `/public/image
 - Multiple image formats are supported (png, jpg, jpeg, gif, svg, webp)
 - Images should be clear, child-friendly illustrations that a 4-year-old can easily recognize
 
+## Audio generation (Gemini TTS, Puck voice)
+
+Pre-generate audio for every image name in `public/images/` using Gemini TTS (Puck voice by default). Output is WAV/MP3 depending on what the API returns; PCM is wrapped into WAV automatically.
+
+1. In Google Cloud, enable **Gemini** / **Generative Language** and ensure billing is set up.
+2. Create an API key for Gemini TTS and keep it handy.
+3. Export it locally (or use a dotenv):  
+   `export GEMINI_API_KEY=your_key`
+4. Install deps (adds `@google/genai`):  
+   `npm install`
+5. Generate audio into `public/audio/`:  
+   `npm run generate:audio`  
+   Add `-- --force` to overwrite existing files (recommended after changing voices).
+
+Environment knobs:
+- `GEMINI_API_KEY` (or `API_KEY`): required
+- `GEMINI_TTS_MODEL` (default `gemini-2.5-flash-preview-tts`)
+- `GEMINI_TTS_VOICE` (default `puck`)
+- `GEMINI_TTS_MIME` (default `audio/wav`; set `audio/mpeg` if the API starts honoring MP3)
+
+The script scans filenames in `public/images/` and emits one audio file per word with the returned mime type (usually `.wav`). Use umlauts in filenames to get correct pronunciation (e.g., `Löffel.png` → `Löffel.wav`).
+
 ## Development Roadmap
 
 - Add more German letters and corresponding images
