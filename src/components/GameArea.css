@@ -26,6 +26,10 @@
     line-height: 1.4;
 } 
 
+.drawing-feedback-summary {
+    max-width: 340px;
+}
+
 .dot-tracing-area {
     display: flex;
     flex-direction: column;

@@ -6,6 +6,7 @@ const EVAL_CANVAS_HEIGHT = 300; // Updated height to match GameArea
 const TARGET_FONT = 'bold 280px Arial'; // Increased font size again
 const TARGET_COLOR = 'rgb(0, 0, 0)'; // Use black for target rendering
 const FEEDBACK_MISS_COLOR = 'rgba(255, 0, 0, 0.7)'; // Red for missed areas
+const FEEDBACK_EXTRA_COLOR = 'rgba(37, 99, 235, 0.65)'; // Blue for extra strokes outside the target
 const SIMILARITY_THRESHOLD = 0.6; // 60% overlap required to pass
 export const GUIDE_COLOR = '#e0e0e0'; // Export guide color
 
@@ -17,7 +18,24 @@ export interface DrawingEvaluationResult {
     similarityScore: number; // Combined score considering coverage and accuracy
     coverageScore: number; // How much of the target was covered
     accuracyScore: number; // How much of the user's drawing was inside the target
+    missedPixelCount: number;
+    extraneousPixelCount: number;
     feedbackImageData: ImageData | null; // Pixel data to show missing parts
+}
+
+function parseRgbaColor(rgba: string) {
+    const match = rgba.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/i);
+    if (!match) {
+        return { r: 255, g: 0, b: 0, a: 180 };
+    }
+
+    const [, r, g, b, alpha] = match;
+    return {
+        r: Number(r),
+        g: Number(g),
+        b: Number(b),
+        a: Math.round(Number(alpha) * 255),
+    };
 }
 
 /**
@@ -63,7 +81,15 @@ export function evaluateDrawing(targetLetter: string, userCanvas: HTMLCanvasElem
     const targetCanvas = renderTargetLetter(targetLetter, TARGET_COLOR); 
     if (!targetCanvas || !userCanvas) {
         console.error("Evaluation failed: Missing target or user canvas.");
-        return { isCorrect: false, similarityScore: 0, coverageScore: 0, accuracyScore: 0, feedbackImageData: null };
+        return {
+            isCorrect: false,
+            similarityScore: 0,
+            coverageScore: 0,
+            accuracyScore: 0,
+            missedPixelCount: 0,
+            extraneousPixelCount: 0,
+            feedbackImageData: null
+        };
     }
 
     // Get context for the black target canvas
@@ -72,7 +98,15 @@ export function evaluateDrawing(targetLetter: string, userCanvas: HTMLCanvasElem
 
     if (!targetCtx || !userCtx) {
         console.error("Evaluation failed: Could not get canvas contexts.");
-        return { isCorrect: false, similarityScore: 0, coverageScore: 0, accuracyScore: 0, feedbackImageData: null };
+        return {
+            isCorrect: false,
+            similarityScore: 0,
+            coverageScore: 0,
+            accuracyScore: 0,
+            missedPixelCount: 0,
+            extraneousPixelCount: 0,
+            feedbackImageData: null
+        };
     }
 
     // Get pixel data
@@ -86,6 +120,8 @@ export function evaluateDrawing(targetLetter: string, userCanvas: HTMLCanvasElem
     let missedPixelCount = 0;
     let extraneousPixelCount = 0; 
     let maxTargetAlpha = 0; 
+    const missColor = parseRgbaColor(FEEDBACK_MISS_COLOR);
+    const extraColor = parseRgbaColor(FEEDBACK_EXTRA_COLOR);
 
     // --- Refactored Pixel Loop --- 
     for (let i = 0; i < targetData.data.length; i += 4) {
@@ -111,19 +147,20 @@ export function evaluateDrawing(targetLetter: string, userCanvas: HTMLCanvasElem
             // Case 2: Missed Target Pixel
             targetPixelCount++;
             missedPixelCount++;
-            // Mark feedback pixel
-            const r = parseInt(FEEDBACK_MISS_COLOR.slice(5, FEEDBACK_MISS_COLOR.indexOf(',')));
-            const g = parseInt(FEEDBACK_MISS_COLOR.slice(FEEDBACK_MISS_COLOR.indexOf(',') + 1, FEEDBACK_MISS_COLOR.lastIndexOf(',')));
-            const b = parseInt(FEEDBACK_MISS_COLOR.slice(FEEDBACK_MISS_COLOR.lastIndexOf(',') + 1, FEEDBACK_MISS_COLOR.indexOf(')')));
-            const a = parseFloat(FEEDBACK_MISS_COLOR.slice(FEEDBACK_MISS_COLOR.lastIndexOf('a(') + 2, FEEDBACK_MISS_COLOR.length -1)) * 255;
-            feedbackImageData.data[i] = r;     
-            feedbackImageData.data[i + 1] = g; 
-            feedbackImageData.data[i + 2] = b; 
-            feedbackImageData.data[i + 3] = a; 
+            // Mark missing target pixels in red.
+            feedbackImageData.data[i] = missColor.r;
+            feedbackImageData.data[i + 1] = missColor.g;
+            feedbackImageData.data[i + 2] = missColor.b;
+            feedbackImageData.data[i + 3] = missColor.a;
         } else if (!isTargetPixel && isUserPixel) {
             // Case 3: Extraneous User Pixel (outside target)
             userPixelCount++;
             extraneousPixelCount++;
+            // Mark extra strokes in blue so the child can see where they overshot.
+            feedbackImageData.data[i] = extraColor.r;
+            feedbackImageData.data[i + 1] = extraColor.g;
+            feedbackImageData.data[i + 2] = extraColor.b;
+            feedbackImageData.data[i + 3] = extraColor.a;
         } 
         // Case 4: !isTargetPixel && !isUserPixel (Empty space) - do nothing
     }
@@ -147,6 +184,8 @@ export function evaluateDrawing(targetLetter: string, userCanvas: HTMLCanvasElem
         similarityScore, 
         coverageScore,
         accuracyScore,
-        feedbackImageData: isCorrect || missedPixelCount === 0 ? null : feedbackImageData, 
+        missedPixelCount,
+        extraneousPixelCount,
+        feedbackImageData: isCorrect || (missedPixelCount === 0 && extraneousPixelCount === 0) ? null : feedbackImageData, 
     };
 } 

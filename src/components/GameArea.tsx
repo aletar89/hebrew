@@ -76,6 +76,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
     const userDrawingCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const [showDrawingFeedback, setShowDrawingFeedback] = useState<boolean>(false);
     const [feedbackImageData, setFeedbackImageData] = useState<ImageData | null>(null);
+    const [drawingEvaluation, setDrawingEvaluation] = useState<DrawingEvaluationResult | null>(null);
     const [attemptSubmitted, setAttemptSubmitted] = useState<boolean>(false);
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
@@ -88,19 +89,23 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         })
     );
 
-    // Clear canvas, feedback, and attempt state when the round changes
+    // Clear canvas, feedback, and attempt state only when the drawing prompt changes.
     useEffect(() => {
         if (exerciseType === ExerciseType.DRAWING) {
             setClearCanvasSignal(prev => prev + 1);
             userDrawingCanvasRef.current = null;
             setShowDrawingFeedback(false);
             setFeedbackImageData(null);
+            setDrawingEvaluation(null);
             setAttemptSubmitted(false);
         }
+    }, [exerciseType, currentLetter, targetWord]);
+
+    useEffect(() => {
         if (isRoundCorrect !== null || exerciseType !== ExerciseType.WORD_SCRAMBLE) {
             setActiveId(null);
         }
-    }, [exerciseType, currentLetter, targetWord, isRoundCorrect]);
+    }, [exerciseType, isRoundCorrect]);
 
     // --- Effect for Auto-Submitting Word Scramble ---
     useEffect(() => {
@@ -152,6 +157,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         console.log("Final Evaluation Result:", evaluationResult);
 
         setAttemptSubmitted(true);
+        setDrawingEvaluation(evaluationResult);
 
         // Show persistent feedback if the final result is incorrect
         if (!evaluationResult.isCorrect && evaluationResult.feedbackImageData) {
@@ -177,6 +183,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         userDrawingCanvasRef.current = null;
         setShowDrawingFeedback(false);       
         setFeedbackImageData(null);         
+        setDrawingEvaluation(null);
         setAttemptSubmitted(false);
     }, []);
 
@@ -311,6 +318,15 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                         isRoundCorrect === false && (
                              <ClearDrawingButton onClick={handleClearDrawing} />
                         )
+                    )}
+                    {attemptSubmitted && drawingEvaluation && !drawingEvaluation.isCorrect && (
+                        <div className="score-details drawing-feedback-summary">
+                            <p>Rot zeigt fehlende Teile des Buchstabens. Blau zeigt Striche ausserhalb der Form.</p>
+                            <p>
+                                Abdeckung: {Math.round(drawingEvaluation.coverageScore * 100)}%,
+                                Praezision: {Math.round(drawingEvaluation.accuracyScore * 100)}%
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>

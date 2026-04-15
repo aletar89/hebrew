@@ -449,8 +449,10 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     const shouldAdvance =
         // Always advance if correct
         state.isCorrect === true ||
-        // Advance if incorrect, BUT NOT for Word Scramble (allow correction)
-        (state.isCorrect === false && state.exerciseType !== ExerciseType.WORD_SCRAMBLE);
+        // Keep retry-based exercises on screen after failure so the child can inspect and correct mistakes.
+        (state.isCorrect === false &&
+         state.exerciseType !== ExerciseType.WORD_SCRAMBLE &&
+         state.exerciseType !== ExerciseType.DRAWING);
 
     if (shouldAdvance) {
       console.log(`Advancing round automatically (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
