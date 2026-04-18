@@ -15,7 +15,6 @@ export const ScoreProgressBar: React.FC<ScoreProgressBarProps> = ({ score }) => 
   const nextMilestone = milestones.find(milestone => milestone > currentScore) ?? SESSION_TARGET_SCORE;
   const nextConfetti = getConfettiConfigForScore(nextMilestone);
   const fillPercent = (currentScore / SESSION_TARGET_SCORE) * 100;
-  const markerPercent = fillPercent;
 
   return (
     <div
@@ -52,15 +51,6 @@ export const ScoreProgressBar: React.FC<ScoreProgressBarProps> = ({ score }) => 
               />
             );
           })}
-
-          <div
-            className="score-progress-marker"
-            style={{
-              left: `${markerPercent}%`,
-              boxShadow: `0 0 0 6px ${nextConfetti.colors[0]}22`,
-            }}
-            aria-hidden="true"
-          />
         </div>
       </div>
 

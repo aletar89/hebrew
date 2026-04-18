@@ -401,6 +401,11 @@ footer {
   .score-progress {
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
+  }
+
+  .score-progress-track-shell {
+    width: 100%;
   }
 
   .score-progress-preview {
@@ -429,6 +434,8 @@ footer {
 
 .score-progress-track-shell {
   flex: 1;
+  width: 100%;
+  min-width: 0;
   padding: 16px 14px;
   border-radius: 999px;
   background: linear-gradient(180deg, #eef5ff, #f8fbff);
@@ -448,19 +455,6 @@ footer {
   border-radius: 999px;
   transition: width 0.45s ease;
   box-shadow: 0 0 18px rgba(255, 215, 0, 0.25);
-}
-
-.score-progress-marker {
-  position: absolute;
-  top: 50%;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 4px solid var(--primary-color);
-  transform: translate(-50%, -50%);
-  transition: left 0.45s ease;
-  z-index: 3;
 }
 
 .score-progress-milestone {
@@ -911,7 +905,6 @@ html, body {
 
 @media (prefers-reduced-motion: reduce) {
   .score-progress-fill,
-  .score-progress-marker,
   .score-progress-milestone {
     transition: none;
   }
