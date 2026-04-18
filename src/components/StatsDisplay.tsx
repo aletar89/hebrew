@@ -6,10 +6,8 @@ import {
 import {
     LetterPerformance,
     getLetterPerformance,
+    calculateLetterWeight,
     MIN_WEIGHT,
-    INCORRECT_PENALTY_MULTIPLIER,
-    LOW_CONFIDENCE_BOOST_THRESHOLD,
-    LOW_CONFIDENCE_BOOST_MULTIPLIER
 } from '../utils/spacedRepetitionUtils';
 
 interface StatsDisplayProps {
@@ -19,22 +17,8 @@ interface StatsDisplayProps {
     allAvailableLetters: string[];
 }
 
-// Helper function to calculate display weight (mirroring logic in calculateLetterWeights)
 const calculateDisplayWeight = (perf: LetterPerformance): number => {
-    let weight = 1.0; // Base weight
-    if (perf.totalAttempts > 0) {
-        const successRate = perf.correct / perf.totalAttempts;
-        weight *= (1.0 + (1.0 - successRate));
-        if (perf.lastAttemptCorrect === false) {
-            weight *= INCORRECT_PENALTY_MULTIPLIER;
-        }
-    } else {
-        weight *= LOW_CONFIDENCE_BOOST_MULTIPLIER; // Boost never attempted
-    }
-    if (perf.totalAttempts < LOW_CONFIDENCE_BOOST_THRESHOLD) {
-         weight *= LOW_CONFIDENCE_BOOST_MULTIPLIER; // Boost low confidence
-    }
-    return Math.max(MIN_WEIGHT, weight);
+    return Math.max(MIN_WEIGHT, calculateLetterWeight(perf));
 };
 
 export const StatsDisplay: React.FC<StatsDisplayProps> = ({ isRecordingPaused, onTogglePause, updateTrigger, allAvailableLetters }) => {

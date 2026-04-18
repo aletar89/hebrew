@@ -3,6 +3,7 @@ import { GermanLetterItem } from '../utils/imageUtils'; // Adjust path
 import { getRandomElement, shuffleArray } from '../utils/arrayUtils'; // Adjust path
 import { GameState, gameReducer, initialState, ExerciseType } from '../state/gameReducer'; // Adjust path
 import { ScoreDisplay } from './ScoreDisplay';
+import { ScoreProgressBar } from './ScoreProgressBar';
 import { InstructionDisplay } from './InstructionDisplay';
 import { FeedbackDisplay } from './FeedbackDisplay';
 import { GameArea } from './GameArea';
@@ -566,6 +567,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         <ConfettiManager score={state.score} />
 
         <div className="letter-match-container">
+            <ScoreProgressBar score={state.score} />
             <InstructionDisplay exerciseType={state.exerciseType} />
             <ScoreDisplay score={state.score} ref={scoreDisplayRef} />
             <div className="game-content">
