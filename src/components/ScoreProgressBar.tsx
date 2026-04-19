@@ -13,7 +13,13 @@ export const ScoreProgressBar: React.FC<ScoreProgressBarProps> = ({ score }) => 
   const currentScore = clampScore(score);
   const milestones = getMilestoneScores();
   const nextMilestone = milestones.find(milestone => milestone > currentScore) ?? SESSION_TARGET_SCORE;
-  const nextConfetti = getConfettiConfigForScore(nextMilestone);
+  const reachedMilestone = [...milestones].reverse().find(milestone => milestone <= currentScore);
+  const fillGradient = reachedMilestone
+    ? (() => {
+        const reachedConfetti = getConfettiConfigForScore(reachedMilestone);
+        return `linear-gradient(90deg, ${reachedConfetti.colors[0]}, ${reachedConfetti.colors[reachedConfetti.colors.length - 1]})`;
+      })()
+    : 'linear-gradient(90deg, #ffff00, #ffd700)';
   const fillPercent = (currentScore / SESSION_TARGET_SCORE) * 100;
 
   return (
@@ -27,20 +33,10 @@ export const ScoreProgressBar: React.FC<ScoreProgressBarProps> = ({ score }) => 
             className="score-progress-fill"
             style={{
               width: `${fillPercent}%`,
-              background: `linear-gradient(90deg, ${nextConfetti.colors[0]}, ${nextConfetti.colors[nextConfetti.colors.length - 1]})`,
+              background: fillGradient,
             }}
           />
         </div>
-      </div>
-
-      <div className="score-progress-preview" aria-hidden="true">
-        {nextConfetti.colors.map(color => (
-          <span
-            key={`${nextMilestone}-${color}`}
-            className="score-progress-swatch"
-            style={{ backgroundColor: color }}
-          />
-        ))}
       </div>
     </div>
   );
