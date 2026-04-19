@@ -10,6 +10,8 @@ export const LOW_SUCCESS_LINEAR_MULTIPLIER = 4.0;
 export const LOW_SUCCESS_CURVE_MULTIPLIER = 8.0;
 export const LOW_SUCCESS_FLOOR_MULTIPLIER = 1.4;
 export const MASTERED_ITEM_SUPPRESSION = 0.35;
+export const SUCCESS_RATE_PRIOR_CORRECT = 1;
+export const SUCCESS_RATE_PRIOR_INCORRECT = 1;
 
 // --- Data Structures ---
 // Export LetterPerformance interface
@@ -31,8 +33,14 @@ export const calculateLetterWeight = (perf: LetterPerformance): number => {
         return LOW_CONFIDENCE_BOOST_MULTIPLIER * LOW_CONFIDENCE_BOOST_MULTIPLIER;
     }
 
-    const successRate = perf.correct / perf.totalAttempts;
+    // Smooth small samples toward uncertainty so 2/2 or 3/3 does not get treated
+    // as confidently mastered after only a handful of attempts.
+    const adjustedAttempts =
+        perf.totalAttempts + SUCCESS_RATE_PRIOR_CORRECT + SUCCESS_RATE_PRIOR_INCORRECT;
+    const successRate =
+        (perf.correct + SUCCESS_RATE_PRIOR_CORRECT) / adjustedAttempts;
     const failureRate = 1 - successRate;
+    const rawSuccessRate = perf.correct / perf.totalAttempts;
 
     let weight = 1.0;
 
@@ -50,7 +58,7 @@ export const calculateLetterWeight = (perf: LetterPerformance): number => {
         weight *= 1 + confidenceGap * 0.25;
     }
 
-    if (successRate >= 0.85 && perf.totalAttempts >= LOW_CONFIDENCE_BOOST_THRESHOLD) {
+    if (rawSuccessRate >= 0.85 && perf.totalAttempts >= LOW_CONFIDENCE_BOOST_THRESHOLD) {
         weight *= MASTERED_ITEM_SUPPRESSION;
     }
 
