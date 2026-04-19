@@ -4,12 +4,18 @@ import { getRandomElement, shuffleArray } from '../utils/arrayUtils'; // Adjust 
 import { GameState, gameReducer, initialState, ExerciseType } from '../state/gameReducer'; // Adjust path
 import { ScoreDisplay } from './ScoreDisplay';
 import { ScoreProgressBar } from './ScoreProgressBar';
-import { InstructionDisplay } from './InstructionDisplay';
 import { FeedbackDisplay } from './FeedbackDisplay';
 import { GameArea } from './GameArea';
 import { NextRoundButton } from './NextRoundButton';
 import { StatsDisplay } from './StatsDisplay';
-import { saveSelection, SelectionRecord, getSelectionHistory } from '../utils/storageUtils'; // Adjust path
+import {
+  saveSelection,
+  SelectionRecord,
+  getSelectionHistory,
+  getSessionScore,
+  resetSessionScore,
+  saveSessionScore,
+} from '../utils/storageUtils'; // Adjust path
 import { calculateLetterWeights, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
 import { ConfettiManager } from './ConfettiManager'; // Import the new manager
 import { letterDotPatterns } from '../utils/letterDotPatterns';
@@ -36,6 +42,11 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const hasQueuedIdlePreload = useRef(false);
 
   const handleToggleStats = () => setShowStats(prev => !prev);
+  const handleStartNewSession = () => {
+    resetSessionScore();
+    dispatch({ type: 'SET_SCORE', payload: 0 });
+    startNewRound();
+  };
 
   // --- Game Logic Callbacks ---
   const startNewRound = useCallback(() => {
@@ -414,6 +425,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
   // --- Effects ---
   useEffect(() => {
+    const storedSessionScore = getSessionScore();
+    dispatch({ type: 'SET_SCORE', payload: storedSessionScore });
+
     if (availableLetters.length > 0) {
       startNewRound();
     } else {
@@ -443,6 +457,10 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     enqueueIdleTasks(idleTasks);
     hasQueuedIdlePreload.current = true;
   }, [state.correctImageItem, state.exerciseType, letterGroups]);
+
+  useEffect(() => {
+    saveSessionScore(state.score);
+  }, [state.score]);
 
   useEffect(() => {
     let timer: number | undefined;
@@ -568,7 +586,6 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
         <div className="letter-match-container">
             <ScoreProgressBar score={state.score} />
-            <InstructionDisplay exerciseType={state.exerciseType} />
             <ScoreDisplay score={state.score} ref={scoreDisplayRef} />
             <div className="game-content">
                 <GameArea
@@ -586,6 +603,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                 </div>
                 <div className="game-controls-container">
                     <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
+                    <button onClick={handleStartNewSession} className="new-letter-button">
+                        New Session
+                    </button>
                     <button onClick={handleToggleStats} className="new-letter-button">
                         {showStats ? 'Hide Stats' : 'Show Stats'}
                     </button>

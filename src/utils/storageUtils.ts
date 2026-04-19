@@ -2,6 +2,7 @@
 // Removed unused import: import { GermanLetterItem } from "./imageUtils";
 
 const STORAGE_KEY = 'germanLearningStats';
+const SESSION_SCORE_STORAGE_KEY = 'germanLearningSessionScore';
 
 // Define the structure for each recorded selection
 export interface SelectionRecord {
@@ -55,4 +56,35 @@ export const clearSelectionHistory = (): void => {
     } catch (error) {
         console.error("Error clearing localStorage:", error);
     }
-}; 
+};
+
+export const getSessionScore = (): number => {
+    try {
+        const storedScore = localStorage.getItem(SESSION_SCORE_STORAGE_KEY);
+        if (!storedScore) {
+            return 0;
+        }
+        const parsedScore = Number(storedScore);
+        return Number.isFinite(parsedScore) && parsedScore >= 0 ? parsedScore : 0;
+    } catch (error) {
+        console.error("Error reading session score from localStorage:", error);
+        return 0;
+    }
+};
+
+export const saveSessionScore = (score: number): void => {
+    try {
+        const safeScore = Number.isFinite(score) && score >= 0 ? score : 0;
+        localStorage.setItem(SESSION_SCORE_STORAGE_KEY, String(safeScore));
+    } catch (error) {
+        console.error("Error writing session score to localStorage:", error);
+    }
+};
+
+export const resetSessionScore = (): void => {
+    try {
+        localStorage.setItem(SESSION_SCORE_STORAGE_KEY, '0');
+    } catch (error) {
+        console.error("Error resetting session score in localStorage:", error);
+    }
+};
