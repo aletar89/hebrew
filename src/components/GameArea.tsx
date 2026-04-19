@@ -30,6 +30,7 @@ import { SubmitDrawingButton } from './SubmitDrawingButton';
 import { DrawingFeedbackCanvas } from './DrawingFeedbackCanvas';
 import { ClearDrawingButton } from './ClearDrawingButton.tsx';
 import { LetterCaseMatch } from './LetterCaseMatch';
+import { RaceToPictureGame } from './RaceToPictureGame';
 import { letterDotPatterns } from '../utils/letterDotPatterns';
 
 // --- Word Scramble specific components (simplified examples) ---
@@ -51,17 +52,21 @@ interface GameAreaProps {
     onLetterSelect: (letter: string) => void;
     onWordSelect: (word: string) => void;
     onCaseMatchAttempt: (uppercase: string, lowercase: string, isCorrect: boolean) => void;
+    onRaceAttempt: (item: GermanLetterItem, isCorrect: boolean) => void;
     dispatch: React.Dispatch<GameAction>;
 }
 
 // Displays the core interactive area (prompt and options)
-export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, onCaseMatchAttempt, dispatch }) => {
+export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, onCaseMatchAttempt, onRaceAttempt, dispatch }) => {
     const {
         exerciseType,
         currentLetter,
         currentWord,
         correctImageItem,
         imageOptions,
+        raceCorrectItems,
+        raceDistractorItems,
+        raceTargetCount,
         letterOptions,
         wordOptions,
         uppercaseLetters,
@@ -283,6 +288,24 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                     </div>
                 )}
             </div>
+        );
+    }
+
+    if (exerciseType === ExerciseType.RACE_TO_PICTURE) {
+        if (!currentLetter) {
+            return <div className="loading">Loading race challenge...</div>;
+        }
+
+        return (
+            <RaceToPictureGame
+                targetLetter={currentLetter}
+                correctItems={raceCorrectItems}
+                distractorItems={raceDistractorItems}
+                targetCount={raceTargetCount}
+                disabled={isRoundCorrect !== null}
+                onAttempt={onRaceAttempt}
+                onFinish={(isCorrect) => dispatch({ type: 'FINISH_RACE', payload: { isCorrect } })}
+            />
         );
     }
 

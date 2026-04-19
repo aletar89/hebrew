@@ -11,6 +11,12 @@ export const InstructionDisplay: React.FC<{ exerciseType: ExerciseType }> = ({ e
                 <p>Match the letter to the correct picture</p>
             </>
         )}
+        {exerciseType === ExerciseType.RACE_TO_PICTURE && (
+            <>
+                <p>Steuere ins passende Bild fuer den Buchstaben</p>
+                <p>Drive into the matching picture for the letter</p>
+            </>
+        )}
         {exerciseType === ExerciseType.WORD_TO_PICTURE && (
             <>
                 <p>Ordne das Wort dem passenden Bild zu</p>

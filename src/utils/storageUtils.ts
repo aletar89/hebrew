@@ -3,6 +3,8 @@
 
 const STORAGE_KEY = 'germanLearningStats';
 const SESSION_SCORE_STORAGE_KEY = 'germanLearningSessionScore';
+const SESSION_SCORE_LAST_SUCCESS_STORAGE_KEY = 'germanLearningSessionLastSuccessAt';
+const SESSION_SCORE_EXPIRY_MS = 60 * 60 * 1000;
 
 // Define the structure for each recorded selection
 export interface SelectionRecord {
@@ -61,21 +63,50 @@ export const clearSelectionHistory = (): void => {
 export const getSessionScore = (): number => {
     try {
         const storedScore = localStorage.getItem(SESSION_SCORE_STORAGE_KEY);
+        const storedLastSuccessAt = localStorage.getItem(SESSION_SCORE_LAST_SUCCESS_STORAGE_KEY);
         if (!storedScore) {
             return 0;
         }
+
         const parsedScore = Number(storedScore);
-        return Number.isFinite(parsedScore) && parsedScore >= 0 ? parsedScore : 0;
+        if (!Number.isFinite(parsedScore) || parsedScore < 0) {
+            return 0;
+        }
+
+        if (parsedScore === 0) {
+            return 0;
+        }
+
+        const parsedLastSuccessAt = Number(storedLastSuccessAt);
+        const hasValidLastSuccessAt = Number.isFinite(parsedLastSuccessAt) && parsedLastSuccessAt > 0;
+        const isExpired =
+            !hasValidLastSuccessAt || Date.now() - parsedLastSuccessAt > SESSION_SCORE_EXPIRY_MS;
+
+        if (isExpired) {
+            resetSessionScore();
+            return 0;
+        }
+
+        return parsedScore;
     } catch (error) {
         console.error("Error reading session score from localStorage:", error);
         return 0;
     }
 };
 
-export const saveSessionScore = (score: number): void => {
+export const saveSessionScore = (score: number, lastSuccessAt?: number): void => {
     try {
         const safeScore = Number.isFinite(score) && score >= 0 ? score : 0;
         localStorage.setItem(SESSION_SCORE_STORAGE_KEY, String(safeScore));
+
+        if (safeScore === 0) {
+            localStorage.removeItem(SESSION_SCORE_LAST_SUCCESS_STORAGE_KEY);
+            return;
+        }
+
+        if (typeof lastSuccessAt === 'number' && Number.isFinite(lastSuccessAt) && lastSuccessAt > 0) {
+            localStorage.setItem(SESSION_SCORE_LAST_SUCCESS_STORAGE_KEY, String(lastSuccessAt));
+        }
     } catch (error) {
         console.error("Error writing session score to localStorage:", error);
     }
@@ -84,6 +115,7 @@ export const saveSessionScore = (score: number): void => {
 export const resetSessionScore = (): void => {
     try {
         localStorage.setItem(SESSION_SCORE_STORAGE_KEY, '0');
+        localStorage.removeItem(SESSION_SCORE_LAST_SUCCESS_STORAGE_KEY);
     } catch (error) {
         console.error("Error resetting session score in localStorage:", error);
     }

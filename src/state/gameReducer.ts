@@ -4,6 +4,7 @@ import { GermanLetterItem } from "../utils/imageUtils";
 
 export enum ExerciseType {
     LETTER_TO_PICTURE = 'letter-to-picture',
+    RACE_TO_PICTURE = 'race-to-picture',
     PICTURE_TO_LETTER = 'picture-to-letter',
     PICTURE_TO_WORD = 'picture-to-word',
     DRAWING = 'drawing',
@@ -19,6 +20,9 @@ export interface GameState {
     currentWord: string | null;
     correctImageItem: GermanLetterItem | null;
     imageOptions: GermanLetterItem[]; // Options for LETTER_TO_PICTURE and WORD_TO_PICTURE
+    raceCorrectItems: GermanLetterItem[];
+    raceDistractorItems: GermanLetterItem[];
+    raceTargetCount: number;
     letterOptions: string[];         // Options for PICTURE_TO_LETTER
     wordOptions: string[];           // Options for PICTURE_TO_WORD
     uppercaseLetters: string[];
@@ -42,6 +46,7 @@ export type GameAction =
     | { type: 'SELECT_LETTER'; payload: { selected: string; isCorrect: boolean } }
     | { type: 'SELECT_WORD'; payload: { selected: string; isCorrect: boolean } }
     | { type: 'SUBMIT_DRAWING'; payload: { isCorrect: boolean } }
+    | { type: 'FINISH_RACE'; payload: { isCorrect: boolean } }
     | { type: 'COMPLETE_TRACE' }
     | { type: 'PLACE_LETTER'; payload: { letterIndex: number; slotIndex: number } }
     | { type: 'REMOVE_LETTER'; payload: { slotIndex: number } }
@@ -59,6 +64,9 @@ export const initialState: GameState = {
     currentWord: null,
     correctImageItem: null,
     imageOptions: [],
+    raceCorrectItems: [],
+    raceDistractorItems: [],
+    raceTargetCount: 0,
     letterOptions: [],
     wordOptions: [],
     uppercaseLetters: [],
@@ -90,16 +98,20 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             const isWordToPicture = action.payload.exerciseType === ExerciseType.WORD_TO_PICTURE;
             const isPictureToWord = action.payload.exerciseType === ExerciseType.PICTURE_TO_WORD;
             const isCaseMatch = action.payload.exerciseType === ExerciseType.CASE_MATCH;
+            const isRaceToPicture = action.payload.exerciseType === ExerciseType.RACE_TO_PICTURE;
 
             const baseState = {
                 ...state,
                 exerciseType: action.payload.exerciseType ?? state.exerciseType,
-                currentLetter: (isDrawing || isDotTracing) ? action.payload.currentLetter ?? null : null,
+                currentLetter: (isDrawing || isDotTracing || isRaceToPicture) ? action.payload.currentLetter ?? null : null,
                 currentWord: isWordToPicture ? action.payload.currentWord ?? null : null,
                 correctImageItem: (isDrawing || isWordScramble || isWordToPicture || isPictureToWord) ? (action.payload.correctImageItem ?? null) : (action.payload.correctImageItem ?? null),
-                imageOptions: (isDrawing || isDotTracing || isWordScramble) ? [] : (action.payload.imageOptions ?? []),
-                letterOptions: (isDrawing || isDotTracing || isWordScramble) ? [] : (action.payload.letterOptions ?? []),
-                wordOptions: (isDrawing || isDotTracing || isWordScramble) ? [] : (action.payload.wordOptions ?? []),
+                imageOptions: (isDrawing || isDotTracing || isWordScramble || isRaceToPicture) ? [] : (action.payload.imageOptions ?? []),
+                raceCorrectItems: isRaceToPicture ? (action.payload.raceCorrectItems ?? []) : [],
+                raceDistractorItems: isRaceToPicture ? (action.payload.raceDistractorItems ?? []) : [],
+                raceTargetCount: isRaceToPicture ? (action.payload.raceTargetCount ?? 0) : 0,
+                letterOptions: (isDrawing || isDotTracing || isWordScramble || isRaceToPicture) ? [] : (action.payload.letterOptions ?? []),
+                wordOptions: (isDrawing || isDotTracing || isWordScramble || isRaceToPicture) ? [] : (action.payload.wordOptions ?? []),
                 uppercaseLetters: isCaseMatch ? (action.payload.uppercaseLetters ?? []) : [],
                 lowercaseLetters: isCaseMatch ? (action.payload.lowercaseLetters ?? []) : [],
                 targetWord: isWordScramble ? action.payload.targetWord ?? null : null,
@@ -114,6 +126,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             };
 
             if (action.payload.exerciseType === ExerciseType.LETTER_TO_PICTURE) {
+                baseState.currentLetter = action.payload.currentLetter ?? null;
+            }
+            if (action.payload.exerciseType === ExerciseType.RACE_TO_PICTURE) {
                 baseState.currentLetter = action.payload.currentLetter ?? null;
             }
             if (action.payload.exerciseType === ExerciseType.WORD_TO_PICTURE) {
@@ -156,6 +171,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             };
         case 'SUBMIT_DRAWING':
             if (state.exerciseType !== ExerciseType.DRAWING) return state;
+            return {
+                ...state,
+                isCorrect: action.payload.isCorrect,
+                score: action.payload.isCorrect ? state.score + 1 : state.score,
+            };
+        case 'FINISH_RACE':
+            if (state.exerciseType !== ExerciseType.RACE_TO_PICTURE || state.isCorrect !== null) return state;
             return {
                 ...state,
                 isCorrect: action.payload.isCorrect,
