@@ -34,6 +34,7 @@ export interface GameState {
 
 export type GameAction =
     | { type: 'START_ROUND'; payload: Partial<GameState> }
+    | { type: 'SET_SCORE'; payload: number }
     | { type: 'SELECT_IMAGE'; payload: { selected: GermanLetterItem; isCorrect: boolean } }
     | { type: 'SELECT_LETTER'; payload: { selected: string; isCorrect: boolean } }
     | { type: 'SELECT_WORD'; payload: { selected: string; isCorrect: boolean } }
@@ -74,6 +75,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     switch (action.type) {
         case 'SET_ERROR':
             return { ...initialState, error: action.payload, gameReady: false };
+        case 'SET_SCORE':
+            return { ...state, score: Math.max(0, action.payload) };
         case 'START_ROUND': {
             const isDrawing = action.payload.exerciseType === ExerciseType.DRAWING;
             const isDotTracing = action.payload.exerciseType === ExerciseType.DOT_TRACING;
