@@ -9,7 +9,8 @@ export enum ExerciseType {
     DRAWING = 'drawing',
     DOT_TRACING = 'dot-tracing',
     WORD_SCRAMBLE = 'word-scramble',
-    WORD_TO_PICTURE = 'word-to-picture'
+    WORD_TO_PICTURE = 'word-to-picture',
+    CASE_MATCH = 'case-match'
 }
 
 export interface GameState {
@@ -20,6 +21,8 @@ export interface GameState {
     imageOptions: GermanLetterItem[]; // Options for LETTER_TO_PICTURE and WORD_TO_PICTURE
     letterOptions: string[];         // Options for PICTURE_TO_LETTER
     wordOptions: string[];           // Options for PICTURE_TO_WORD
+    uppercaseLetters: string[];
+    lowercaseLetters: string[];
     targetWord: string | null;
     shuffledLetters: string[];
     currentArrangement: (string | null)[];
@@ -43,6 +46,7 @@ export type GameAction =
     | { type: 'PLACE_LETTER'; payload: { letterIndex: number; slotIndex: number } }
     | { type: 'REMOVE_LETTER'; payload: { slotIndex: number } }
     | { type: 'SUBMIT_WORD'; payload: { isCorrect: boolean } }
+    | { type: 'COMPLETE_CASE_MATCH' }
     | { type: 'RESET_INCORRECT_WORD_ATTEMPT' }
     | { type: 'SET_ERROR'; payload: string }
     | { type: 'RESET_FEEDBACK' };
@@ -57,6 +61,8 @@ export const initialState: GameState = {
     imageOptions: [],
     letterOptions: [],
     wordOptions: [],
+    uppercaseLetters: [],
+    lowercaseLetters: [],
     targetWord: null,
     shuffledLetters: [],
     currentArrangement: [],
@@ -83,6 +89,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             const isWordScramble = action.payload.exerciseType === ExerciseType.WORD_SCRAMBLE;
             const isWordToPicture = action.payload.exerciseType === ExerciseType.WORD_TO_PICTURE;
             const isPictureToWord = action.payload.exerciseType === ExerciseType.PICTURE_TO_WORD;
+            const isCaseMatch = action.payload.exerciseType === ExerciseType.CASE_MATCH;
 
             const baseState = {
                 ...state,
@@ -93,6 +100,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 imageOptions: (isDrawing || isDotTracing || isWordScramble) ? [] : (action.payload.imageOptions ?? []),
                 letterOptions: (isDrawing || isDotTracing || isWordScramble) ? [] : (action.payload.letterOptions ?? []),
                 wordOptions: (isDrawing || isDotTracing || isWordScramble) ? [] : (action.payload.wordOptions ?? []),
+                uppercaseLetters: isCaseMatch ? (action.payload.uppercaseLetters ?? []) : [],
+                lowercaseLetters: isCaseMatch ? (action.payload.lowercaseLetters ?? []) : [],
                 targetWord: isWordScramble ? action.payload.targetWord ?? null : null,
                 shuffledLetters: isWordScramble ? action.payload.shuffledLetters ?? [] : [],
                 currentArrangement: isWordScramble ? (action.payload.targetWord?.split('').map(() => null) ?? []) : [],
@@ -206,6 +215,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 score: isWordCorrect ? state.score + 1 : state.score,
             };
          }
+        case 'COMPLETE_CASE_MATCH':
+            if (state.exerciseType !== ExerciseType.CASE_MATCH || state.isCorrect === true) return state;
+            return {
+                ...state,
+                isCorrect: true,
+                score: state.score + 1,
+            };
         case 'RESET_INCORRECT_WORD_ATTEMPT': {
             if (
                 state.exerciseType !== ExerciseType.WORD_SCRAMBLE ||

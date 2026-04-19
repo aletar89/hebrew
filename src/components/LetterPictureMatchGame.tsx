@@ -40,6 +40,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const [showStats, setShowStats] = useState(false);
   const scoreDisplayRef = useRef<HTMLDivElement>(null); // Keep ref for potential future use or other components
   const hasQueuedIdlePreload = useRef(false);
+  const caseMatchAttemptCounter = useRef(0);
 
   const handleToggleStats = () => setShowStats(prev => !prev);
   const handleStartNewSession = () => {
@@ -53,6 +54,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     console.log("Starting new round...");
     const newQuestionTimestamp = Date.now();
     setCurrentQuestionId(newQuestionTimestamp);
+    caseMatchAttemptCounter.current = 0;
     console.log("New Question ID (Timestamp):", newQuestionTimestamp);
     dispatch({ type: 'RESET_FEEDBACK' });
 
@@ -69,6 +71,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     // Example: If you want PICTURE_TO_WORD to be 50% and others 10% each:
     // PICTURE_TO_WORD: 50, others: 10 each (total = 100, so 50% vs 10% each)
     const exerciseWeights = {
+        [ExerciseType.CASE_MATCH]: 10,
         [ExerciseType.DOT_TRACING]: 10,
         [ExerciseType.DRAWING]: 10,
         [ExerciseType.LETTER_TO_PICTURE]: 10,
@@ -115,11 +118,15 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
      const canDoPictureToWord = availableLetters.some(letter =>
          letterGroups[letter] && letterGroups[letter].length >= 3
      );
+     const canDoCaseMatch = availableLetters.length >= 4;
      const dotTracingLetters = availableLetters.filter(letter => letterDotPatterns[letter]);
      const canDoDotTracing = dotTracingLetters.length > 0;
 
 
-    if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
+    if (newExerciseType === ExerciseType.CASE_MATCH && !canDoCaseMatch) {
+        console.warn("Cannot do Case Match, falling back...");
+        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
+    } else if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
         console.warn("Cannot do Word Scramble, falling back...");
         newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING; // Example fallback
     } else if ((newExerciseType === ExerciseType.LETTER_TO_PICTURE || newExerciseType === ExerciseType.PICTURE_TO_LETTER) && !canDoMatching) {
@@ -143,7 +150,17 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     let selectedImage: GermanLetterItem | undefined; // Define selectedImage earlier
 
     // --- Drawing Logic ---
-    if (newExerciseType === ExerciseType.DOT_TRACING) {
+    if (newExerciseType === ExerciseType.CASE_MATCH) {
+        const selectedLetters = shuffleArray(availableLetters).slice(0, 4);
+        if (selectedLetters.length < 4) {
+            dispatch({ type: 'SET_ERROR', payload: "Need at least 4 letters to start a capital/lowercase matching round." });
+            return;
+        }
+        roundPayload.uppercaseLetters = selectedLetters;
+        roundPayload.lowercaseLetters = shuffleArray(
+            selectedLetters.map(letter => letter.toLocaleLowerCase('de-DE'))
+        );
+    } else if (newExerciseType === ExerciseType.DOT_TRACING) {
         selectedLetter = getRandomElement(dotTracingLetters.length > 0 ? dotTracingLetters : availableLetters);
         if (!selectedLetter) {
              dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for dot tracing round." });
@@ -561,6 +578,31 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     dispatch({ type: 'SELECT_WORD', payload: { selected: word, isCorrect: isSelectionCorrect } });
   };
 
+  const handleCaseMatchAttempt = (uppercase: string, lowercase: string, isCorrect: boolean) => {
+    if (
+      isRecordingPaused ||
+      state.exerciseType !== ExerciseType.CASE_MATCH ||
+      currentQuestionId <= 0
+    ) {
+      return;
+    }
+
+    const questionId = currentQuestionId + caseMatchAttemptCounter.current;
+    caseMatchAttemptCounter.current += 1;
+
+    const record: SelectionRecord = {
+      timestamp: Date.now(),
+      questionId,
+      targetLetter: uppercase,
+      selectedAnswer: lowercase,
+      isCorrect,
+      exerciseType: state.exerciseType,
+    };
+
+    saveSelection(record);
+    onSelectionSave();
+  };
+
   // --- Rendering ---
   if (state.error) {
     return <div className="letter-match-container error"><p>{state.error}</p></div>;
@@ -593,11 +635,12 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     onImageSelect={handleImageSelect}
                     onLetterSelect={handleLetterSelect}
                     onWordSelect={handleWordSelect}
+                    onCaseMatchAttempt={handleCaseMatchAttempt}
                     dispatch={dispatch}
                 />
                 <div className="feedback-container">
                     {/* Only show text feedback for non-word-scramble types */}
-                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && (
+                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && state.exerciseType !== ExerciseType.CASE_MATCH && (
                         <FeedbackDisplay isCorrect={state.isCorrect} />
                     )}
                 </div>
