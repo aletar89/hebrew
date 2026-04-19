@@ -24,6 +24,26 @@ const initialAvailableLetters = Object.keys(initialLetterGroups).filter(letter =
 console.log('Initial Letter Groups:', initialLetterGroups);
 console.log('Initial Available Letters:', initialAvailableLetters);
 
+const buildLabel = (() => {
+  if (__APP_VERSION__ === 'local') {
+    return 'Local build';
+  }
+
+  const date = new Date(__APP_VERSION__);
+
+  if (Number.isNaN(date.getTime())) {
+    return __APP_VERSION__;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
+})();
+
 // --- Main App Component (Container for the game) ---
 
 function App() {
@@ -43,6 +63,7 @@ function App() {
         onTogglePause={handleTogglePause}
         updateTrigger={selectionCounter}
       />
+      <footer className="app-footer">Updated {buildLabel}</footer>
     </div>
   );
 }

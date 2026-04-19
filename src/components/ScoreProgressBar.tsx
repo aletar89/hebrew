@@ -30,27 +30,6 @@ export const ScoreProgressBar: React.FC<ScoreProgressBarProps> = ({ score }) => 
               background: `linear-gradient(90deg, ${nextConfetti.colors[0]}, ${nextConfetti.colors[nextConfetti.colors.length - 1]})`,
             }}
           />
-
-          {milestones.map(milestone => {
-            const palette = getConfettiConfigForScore(milestone).colors;
-            const position = (milestone / SESSION_TARGET_SCORE) * 100;
-            const isReached = currentScore >= milestone;
-            const isNext = milestone === nextMilestone;
-
-            return (
-              <div
-                key={milestone}
-                className={`score-progress-milestone${isReached ? ' reached' : ''}${isNext ? ' next' : ''}`}
-                style={{
-                  left: `${position}%`,
-                  background: palette.length > 3
-                    ? `linear-gradient(135deg, ${palette.join(', ')})`
-                    : `linear-gradient(135deg, ${palette[0]}, ${palette[palette.length - 1]})`,
-                }}
-                aria-hidden="true"
-              />
-            );
-          })}
         </div>
       </div>
 

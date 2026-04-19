@@ -77,6 +77,13 @@ footer {
   font-size: 0.9rem;
 }
 
+.app-footer {
+  margin-top: auto;
+  padding-top: 24px;
+  color: rgba(51, 51, 51, 0.72);
+  font-size: 0.9rem;
+}
+
 /* Letter matching exercise styles */
 .letter-match-container {
   width: 100%;
@@ -457,32 +464,6 @@ footer {
   box-shadow: 0 0 18px rgba(255, 215, 0, 0.25);
 }
 
-.score-progress-milestone {
-  position: absolute;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 3px solid #ffffff;
-  transform: translate(-50%, -50%) scale(0.9);
-  box-shadow: 0 0 0 2px rgba(70, 130, 180, 0.08);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-  z-index: 2;
-  opacity: 0.65;
-}
-
-.score-progress-milestone.reached {
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 1;
-}
-
-.score-progress-milestone.next {
-  transform: translate(-50%, -50%) scale(1.18);
-  opacity: 1;
-  box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.18);
-  animation: milestonePulse 1.35s ease-in-out infinite;
-}
-
 .score-progress-preview {
   display: flex;
   align-items: center;
@@ -556,12 +537,6 @@ footer {
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
-}
-
-@keyframes milestonePulse {
-  0% { transform: translate(-50%, -50%) scale(1.08); }
-  50% { transform: translate(-50%, -50%) scale(1.22); }
-  100% { transform: translate(-50%, -50%) scale(1.08); }
 }
 
 .new-letter-button {
@@ -904,12 +879,7 @@ html, body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .score-progress-fill,
-  .score-progress-milestone {
+  .score-progress-fill {
     transition: none;
-  }
-
-  .score-progress-milestone.next {
-    animation: none;
   }
 }

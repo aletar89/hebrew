@@ -475,7 +475,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
     if (shouldAdvance) {
       console.log(`Advancing round automatically (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
-      timer = setTimeout(() => {
+      timer = window.setTimeout(() => {
         startNewRound();
       }, 2000); // Adjust delay as needed
     }
