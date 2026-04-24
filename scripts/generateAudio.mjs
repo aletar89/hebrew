@@ -5,25 +5,46 @@ import { GoogleGenAI, Modality } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const rootDir = path.join(__dirname, '..');
+const envPath = path.join(rootDir, '.env');
 
-const imageDir = path.join(__dirname, '..', 'public', 'images');
-const audioDir = path.join(__dirname, '..', 'public', 'audio');
+const imageDir = path.join(rootDir, 'public', 'images');
+const audioDir = path.join(rootDir, 'public', 'audio');
 const validExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif']);
 const audioExtensions = new Set(['.wav', '.mp3', '.ogg', '.webm']);
 const force = process.argv.includes('--force');
-const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-const modelName = process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
-const voiceName = process.env.GEMINI_TTS_VOICE || 'puck';
-const targetMimeType = process.env.GEMINI_TTS_MIME || 'audio/wav'; // ask for browser-friendly WAV by default
-const maxRetries = Number(process.env.GEMINI_TTS_MAX_RETRIES ?? 5);
-const baseBackoffMs = Number(process.env.GEMINI_TTS_BACKOFF_MS ?? 2000);
 
-if (!apiKey) {
-  console.error('Missing API key. Set GEMINI_API_KEY (or API_KEY) with a Gemini API key.');
-  process.exit(1);
+async function loadEnvFile(filePath) {
+  try {
+    const contents = await fs.readFile(filePath, 'utf8');
+
+    for (const rawLine of contents.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) continue;
+
+      const separatorIndex = line.indexOf('=');
+      if (separatorIndex === -1) continue;
+
+      const key = line.slice(0, separatorIndex).trim();
+      if (!key || process.env[key] !== undefined) continue;
+
+      let value = line.slice(separatorIndex + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+
+      process.env[key] = value;
+    }
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'ENOENT') {
+      return;
+    }
+    throw error;
+  }
 }
-
-const client = new GoogleGenAI({ apiKey });
 
 async function listImageWords() {
   const entries = await fs.readdir(imageDir, { withFileTypes: true });
@@ -117,7 +138,7 @@ function pcmToWav(pcmBuffer, sampleRate = 24000, numChannels = 1) {
   return buffer;
 }
 
-async function synthesizeWord(word) {
+async function synthesizeWord(word, { client, modelName, voiceName, targetMimeType, maxRetries, baseBackoffMs }) {
   let attempt = 0;
   let lastError;
 
@@ -192,6 +213,21 @@ async function synthesizeWord(word) {
 }
 
 async function main() {
+  await loadEnvFile(envPath);
+
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const modelName = process.env.GEMINI_TTS_MODEL || 'gemini-2.5-flash-preview-tts';
+  const voiceName = process.env.GEMINI_TTS_VOICE || 'puck';
+  const targetMimeType = process.env.GEMINI_TTS_MIME || 'audio/wav';
+  const maxRetries = Number(process.env.GEMINI_TTS_MAX_RETRIES ?? 5);
+  const baseBackoffMs = Number(process.env.GEMINI_TTS_BACKOFF_MS ?? 2000);
+
+  if (!apiKey) {
+    console.error('Missing API key. Set GEMINI_API_KEY (or API_KEY) in .env or the shell environment.');
+    process.exit(1);
+  }
+
+  const client = new GoogleGenAI({ apiKey });
   console.log(`Scanning images in ${imageDir}...`);
   await fs.mkdir(audioDir, { recursive: true });
 
@@ -220,7 +256,14 @@ async function main() {
 
     try {
       console.log(`Generating audio for ${word}...`);
-      const { buffer, extension } = await synthesizeWord(word);
+      const { buffer, extension } = await synthesizeWord(word, {
+        client,
+        modelName,
+        voiceName,
+        targetMimeType,
+        maxRetries,
+        baseBackoffMs,
+      });
       const targetPath = outputPath.replace(/\.mp3$/, `.${extension}`);
       await fs.writeFile(targetPath, buffer);
     } catch (error) {
