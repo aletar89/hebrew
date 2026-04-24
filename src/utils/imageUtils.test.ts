@@ -5,11 +5,11 @@ describe('processImageModules', () => {
   it('should return an empty object with initialized letters when input is empty', () => {
     const imageModules = {};
     const result = processImageModules(imageModules);
-    expect(Object.keys(result)).toHaveLength(19);
+    expect(Object.keys(result)).toHaveLength(26);
     expect(result['A']).toEqual([]);
     expect(result['B']).toEqual([]);
     expect(result['S']).toEqual([]);
-    expect(result['Z']).toBeUndefined();
+    expect(result['Z']).toEqual([]);
   });
 
   it('should process valid image paths and group them correctly by letter', () => {
@@ -31,7 +31,8 @@ describe('processImageModules', () => {
     expect(result['B'][0]).toEqual(expect.objectContaining<Partial<GermanLetterItem>>({ letter: 'B', word: 'Banane', imageUrl: '/images/Banane.jpeg' }));
 
     expect(result['C']).toEqual([]);
-    expect(result['Z']).toBeUndefined();
+    expect(result['Z']).toHaveLength(1);
+    expect(result['Z'][0]).toEqual(expect.objectContaining<Partial<GermanLetterItem>>({ letter: 'Z', word: 'Zebra', imageUrl: '/images/Zebra.gif' }));
   });
 
   it('should ignore files that do not match the image extension regex', () => {
