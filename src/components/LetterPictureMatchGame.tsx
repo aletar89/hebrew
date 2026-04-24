@@ -38,20 +38,40 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
   const [showStats, setShowStats] = useState(false);
+  const [isConfirmingNewSession, setIsConfirmingNewSession] = useState(false);
   const scoreDisplayRef = useRef<HTMLDivElement>(null); // Keep ref for potential future use or other components
   const hasQueuedIdlePreload = useRef(false);
   const caseMatchAttemptCounter = useRef(0);
 
   const handleToggleStats = () => setShowStats(prev => !prev);
   const handleStartNewSession = () => {
+    if (!isConfirmingNewSession) {
+      setIsConfirmingNewSession(true);
+      return;
+    }
+
+    setIsConfirmingNewSession(false);
     resetSessionScore();
     dispatch({ type: 'SET_SCORE', payload: 0 });
     startNewRound();
   };
 
+  useEffect(() => {
+    if (!isConfirmingNewSession) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsConfirmingNewSession(false);
+    }, 3000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isConfirmingNewSession]);
+
   // --- Game Logic Callbacks ---
   const startNewRound = useCallback(() => {
     console.log("Starting new round...");
+    setIsConfirmingNewSession(false);
     const newQuestionTimestamp = Date.now();
     setCurrentQuestionId(newQuestionTimestamp);
     caseMatchAttemptCounter.current = 0;
@@ -646,8 +666,11 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                 </div>
                 <div className="game-controls-container">
                     <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
-                    <button onClick={handleStartNewSession} className="new-letter-button">
-                        New Session
+                    <button
+                        onClick={handleStartNewSession}
+                        className={`new-letter-button${isConfirmingNewSession ? ' confirm-button' : ''}`}
+                    >
+                        {isConfirmingNewSession ? 'Click Again to Confirm' : 'New Session'}
                     </button>
                     <button onClick={handleToggleStats} className="new-letter-button">
                         {showStats ? 'Hide Stats' : 'Show Stats'}

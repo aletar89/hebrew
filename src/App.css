@@ -539,6 +539,14 @@ footer {
   transform: translateY(1px);
 }
 
+.new-letter-button.confirm-button {
+  background-color: #b91c1c;
+}
+
+.new-letter-button.confirm-button:hover {
+  background-color: #991b1b;
+}
+
 /* Loading and error states */
 .letter-match-container.loading,
 .letter-match-container.error {

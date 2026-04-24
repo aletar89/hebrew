@@ -4,7 +4,7 @@ export interface DotPoint {
   lift?: boolean; // start a new stroke here (pen up before this point)
 }
 
-// Simple, stroke-ordered dot guides for core capital letters.
+// Simple, stroke-ordered dot guides for capital letters used in the app.
 // Coordinates are normalized; scale using the target canvas width/height.
 export const letterDotPatterns: Record<string, DotPoint[]> = {
   A: [
@@ -158,5 +158,50 @@ export const letterDotPatterns: Record<string, DotPoint[]> = {
     { x: 0.75, y: 0.78 },
     { x: 0.55, y: 0.9 },
     { x: 0.25, y: 0.82 },
+  ],
+  T: [
+    { x: 0.2, y: 0.1 },
+    { x: 0.8, y: 0.1 },
+    { x: 0.5, y: 0.1, lift: true },
+    { x: 0.5, y: 0.9 },
+  ],
+  U: [
+    { x: 0.25, y: 0.1 },
+    { x: 0.25, y: 0.72 },
+    { x: 0.4, y: 0.9 },
+    { x: 0.6, y: 0.9 },
+    { x: 0.75, y: 0.72 },
+    { x: 0.75, y: 0.1 },
+  ],
+  V: [
+    { x: 0.2, y: 0.1 },
+    { x: 0.5, y: 0.9 },
+    { x: 0.8, y: 0.1 },
+  ],
+  W: [
+    { x: 0.15, y: 0.1 },
+    { x: 0.3, y: 0.9 },
+    { x: 0.5, y: 0.45 },
+    { x: 0.7, y: 0.9 },
+    { x: 0.85, y: 0.1 },
+  ],
+  X: [
+    { x: 0.25, y: 0.1 },
+    { x: 0.75, y: 0.9 },
+    { x: 0.75, y: 0.1, lift: true },
+    { x: 0.25, y: 0.9 },
+  ],
+  Y: [
+    { x: 0.2, y: 0.1 },
+    { x: 0.5, y: 0.45 },
+    { x: 0.8, y: 0.1 },
+    { x: 0.5, y: 0.45, lift: true },
+    { x: 0.5, y: 0.9 },
+  ],
+  Z: [
+    { x: 0.2, y: 0.1 },
+    { x: 0.8, y: 0.1 },
+    { x: 0.2, y: 0.9 },
+    { x: 0.8, y: 0.9 },
   ],
 };
