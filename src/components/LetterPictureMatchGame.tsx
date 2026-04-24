@@ -92,8 +92,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     // PICTURE_TO_WORD: 50, others: 10 each (total = 100, so 50% vs 10% each)
     const exerciseWeights = {
         [ExerciseType.CASE_MATCH]: 10,
-        [ExerciseType.DOT_TRACING]: 10,
-        [ExerciseType.DRAWING]: 10,
+        [ExerciseType.DOT_TRACING]: 7,
+        [ExerciseType.DRAWING]: 7,
         [ExerciseType.LETTER_TO_PICTURE]: 10,
         [ExerciseType.PICTURE_TO_LETTER]: 10,
         [ExerciseType.PICTURE_TO_WORD]: 0,
@@ -474,18 +474,24 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   }, []); // Intentionally empty to run only once on mount
 
   useEffect(() => {
-    if (state.exerciseType !== ExerciseType.PICTURE_TO_LETTER || !state.correctImageItem) {
+    if (!state.correctImageItem) {
       return;
     }
 
     preloadImage(state.correctImageItem.imageUrl);
     preloadWordAudio(state.correctImageItem.word);
+  }, [state.correctImageItem]);
 
+  useEffect(() => {
     if (hasQueuedIdlePreload.current) {
       return;
     }
 
     const allItems = Object.values(letterGroups).flat();
+    if (allItems.length === 0) {
+      return;
+    }
+
     const idleTasks = allItems.flatMap(item => [
       () => preloadImage(item.imageUrl),
       () => preloadWordAudio(item.word),
@@ -493,7 +499,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
     enqueueIdleTasks(idleTasks);
     hasQueuedIdlePreload.current = true;
-  }, [state.correctImageItem, state.exerciseType, letterGroups]);
+  }, [letterGroups]);
 
   useEffect(() => {
     saveSessionScore(state.score);
