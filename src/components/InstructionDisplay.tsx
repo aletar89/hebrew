@@ -41,5 +41,11 @@ export const InstructionDisplay: React.FC<{ exerciseType: ExerciseType }> = ({ e
                 <p>Drag from the green dot to connect each point in order</p>
             </>
         )}
+        {exerciseType === ExerciseType.CASE_MATCH && (
+            <>
+                <p>Verbinde die grossen Buchstaben mit den passenden kleinen Buchstaben</p>
+                <p>Match each capital letter to its lowercase form</p>
+            </>
+        )}
     </div>
 );

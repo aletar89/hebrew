@@ -3,9 +3,15 @@ import { SelectionRecord } from "./storageUtils";
 // --- Configuration ---
 // Export constants so they can be used in StatsDisplay for calculation mirroring
 export const MIN_WEIGHT = 0.1;
-export const INCORRECT_PENALTY_MULTIPLIER = 3.0;
+export const INCORRECT_PENALTY_MULTIPLIER = 2.5;
 export const LOW_CONFIDENCE_BOOST_THRESHOLD = 5;
-export const LOW_CONFIDENCE_BOOST_MULTIPLIER = 1.5;
+export const LOW_CONFIDENCE_BOOST_MULTIPLIER = 2.2;
+export const LOW_SUCCESS_LINEAR_MULTIPLIER = 4.0;
+export const LOW_SUCCESS_CURVE_MULTIPLIER = 8.0;
+export const LOW_SUCCESS_FLOOR_MULTIPLIER = 1.4;
+export const MASTERED_ITEM_SUPPRESSION = 0.35;
+export const SUCCESS_RATE_PRIOR_CORRECT = 1;
+export const SUCCESS_RATE_PRIOR_INCORRECT = 1;
 
 // --- Data Structures ---
 // Export LetterPerformance interface
@@ -21,6 +27,43 @@ export interface WeightedLetter {
     letter: string;
     weight: number;
 }
+
+export const calculateLetterWeight = (perf: LetterPerformance): number => {
+    if (perf.totalAttempts === 0) {
+        return LOW_CONFIDENCE_BOOST_MULTIPLIER * LOW_CONFIDENCE_BOOST_MULTIPLIER;
+    }
+
+    // Smooth small samples toward uncertainty so 2/2 or 3/3 does not get treated
+    // as confidently mastered after only a handful of attempts.
+    const adjustedAttempts =
+        perf.totalAttempts + SUCCESS_RATE_PRIOR_CORRECT + SUCCESS_RATE_PRIOR_INCORRECT;
+    const successRate =
+        (perf.correct + SUCCESS_RATE_PRIOR_CORRECT) / adjustedAttempts;
+    const failureRate = 1 - successRate;
+    const rawSuccessRate = perf.correct / perf.totalAttempts;
+
+    let weight = 1.0;
+
+    // Push low-success items forward much more aggressively as the pool grows.
+    weight *= LOW_SUCCESS_FLOOR_MULTIPLIER;
+    weight *= 1 + failureRate * LOW_SUCCESS_LINEAR_MULTIPLIER;
+    weight *= 1 + failureRate * failureRate * LOW_SUCCESS_CURVE_MULTIPLIER;
+
+    if (perf.lastAttemptCorrect === false) {
+        weight *= INCORRECT_PENALTY_MULTIPLIER;
+    }
+
+    if (perf.totalAttempts < LOW_CONFIDENCE_BOOST_THRESHOLD) {
+        const confidenceGap = LOW_CONFIDENCE_BOOST_THRESHOLD - perf.totalAttempts;
+        weight *= 1 + confidenceGap * 0.25;
+    }
+
+    if (rawSuccessRate >= 0.85 && perf.totalAttempts >= LOW_CONFIDENCE_BOOST_THRESHOLD) {
+        weight *= MASTERED_ITEM_SUPPRESSION;
+    }
+
+    return Math.max(MIN_WEIGHT, weight);
+};
 
 // --- Calculation Functions ---
 
@@ -101,30 +144,9 @@ export const calculateLetterWeights = (
 
     allAvailableLetters.forEach(letter => {
         const perf = performance[letter];
-        let weight = 1.0; // Base weight
-
-        if (perf.totalAttempts > 0) {
-            const successRate = perf.correct / perf.totalAttempts;
-            // Lower success rate increases weight (max multiplier of 2 for 0% success)
-            weight *= (1.0 + (1.0 - successRate));
-
-            // Recent incorrect attempt significantly increases weight
-            if (perf.lastAttemptCorrect === false) {
-                weight *= INCORRECT_PENALTY_MULTIPLIER;
-            }
-        } else {
-           // Slightly boost items never attempted
-            weight *= LOW_CONFIDENCE_BOOST_MULTIPLIER;
-        }
-
-        // Boost items with few attempts (low confidence)
-        if (perf.totalAttempts < LOW_CONFIDENCE_BOOST_THRESHOLD) {
-             weight *= LOW_CONFIDENCE_BOOST_MULTIPLIER;
-        }
-
         weightedLetters.push({
             letter,
-            weight: Math.max(MIN_WEIGHT, weight) // Ensure minimum weight
+            weight: calculateLetterWeight(perf)
         });
     });
 

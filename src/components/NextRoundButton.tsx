@@ -11,6 +11,7 @@ export const NextRoundButton: React.FC<{ onClick: () => void; exerciseType: Exer
         {/* English-only label */}
         {exerciseType === ExerciseType.LETTER_TO_PICTURE ? 'New Letter' : 
          exerciseType === ExerciseType.WORD_TO_PICTURE ? 'New Word' :
+         exerciseType === ExerciseType.CASE_MATCH ? 'New Match' :
          exerciseType === ExerciseType.PICTURE_TO_WORD ? 'New Picture' :
          'New Picture'}
     </button>

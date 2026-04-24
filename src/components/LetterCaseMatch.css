@@ -1,0 +1,118 @@
+.letter-case-match {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.letter-case-match-board {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 72px;
+  padding: 20px 24px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #f9fbff 0%, #eef5ff 100%);
+  box-shadow: inset 0 0 0 1px rgba(70, 130, 180, 0.12);
+}
+
+.letter-case-match-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.letter-case-match-lines line {
+  stroke: #4682b4;
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.letter-case-column {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.letter-case-column h3 {
+  text-align: center;
+  color: #315b7c;
+  font-size: 1rem;
+}
+
+.letter-case-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.letter-case-card {
+  width: min(100%, 140px);
+  height: 64px;
+  padding: 0;
+  border: 3px solid #b8d5ec;
+  border-radius: 18px;
+  background: #fff;
+  color: #214766;
+  font-size: 1.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.letter-case-card:hover,
+.letter-case-card:focus-visible {
+  transform: translateY(-1px);
+  border-color: #4682b4;
+  box-shadow: 0 8px 18px rgba(70, 130, 180, 0.14);
+  outline: none;
+}
+
+.letter-case-card.selected {
+  border-color: #f59e0b;
+  background: #fff7db;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+.letter-case-card.matched {
+  border-color: #22c55e;
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.letter-case-card:disabled {
+  cursor: default;
+}
+
+.letter-case-status {
+  min-height: 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #315b7c;
+  text-align: center;
+}
+
+@media (max-width: 680px) {
+  .letter-case-match-board {
+    gap: 20px;
+    padding: 16px;
+  }
+
+  .letter-case-card {
+    width: min(100%, 120px);
+    height: 58px;
+    font-size: 1.5rem;
+  }
+}

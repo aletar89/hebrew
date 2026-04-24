@@ -77,6 +77,13 @@ footer {
   font-size: 0.9rem;
 }
 
+.app-footer {
+  margin-top: auto;
+  padding-top: 24px;
+  color: rgba(51, 51, 51, 0.72);
+  font-size: 0.9rem;
+}
+
 /* Letter matching exercise styles */
 .letter-match-container {
   width: 100%;
@@ -358,6 +365,14 @@ footer {
   .letter-match-container {
     padding: 15px 10px;
   }
+
+  .score-progress {
+    gap: 10px;
+  }
+
+  .score-progress-track-shell {
+    padding: 14px 10px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -389,6 +404,20 @@ footer {
   img {
     max-width: 100%;
   }
+
+  .score-progress {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .score-progress-track-shell {
+    width: 100%;
+  }
+
+  .score-progress-preview {
+    align-self: center;
+  }
 }
 
 .score-display {
@@ -401,6 +430,35 @@ footer {
   font-size: 1.2rem;
   font-weight: bold;
   color: var(--primary-color);
+}
+
+.score-progress {
+  margin-bottom: 16px;
+}
+
+.score-progress-track-shell {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: 16px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #eef5ff, #f8fbff);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 24px rgba(70, 130, 180, 0.08);
+}
+
+.score-progress-track {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #dfeaf6, #edf4fb);
+  overflow: visible;
+}
+
+.score-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.45s ease;
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.25);
 }
 
 .stars {
@@ -796,4 +854,10 @@ html, body {
 .word-option.incorrect-option {
   border-color: var(--error-color) !important;
   opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-progress-fill {
+    transition: none;
+  }
 }

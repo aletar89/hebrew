@@ -3,12 +3,19 @@ import { GermanLetterItem } from '../utils/imageUtils'; // Adjust path
 import { getRandomElement, shuffleArray } from '../utils/arrayUtils'; // Adjust path
 import { GameState, gameReducer, initialState, ExerciseType } from '../state/gameReducer'; // Adjust path
 import { ScoreDisplay } from './ScoreDisplay';
-import { InstructionDisplay } from './InstructionDisplay';
+import { ScoreProgressBar } from './ScoreProgressBar';
 import { FeedbackDisplay } from './FeedbackDisplay';
 import { GameArea } from './GameArea';
 import { NextRoundButton } from './NextRoundButton';
 import { StatsDisplay } from './StatsDisplay';
-import { saveSelection, SelectionRecord, getSelectionHistory } from '../utils/storageUtils'; // Adjust path
+import {
+  saveSelection,
+  SelectionRecord,
+  getSelectionHistory,
+  getSessionScore,
+  resetSessionScore,
+  saveSessionScore,
+} from '../utils/storageUtils'; // Adjust path
 import { calculateLetterWeights, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
 import { ConfettiManager } from './ConfettiManager'; // Import the new manager
 import { letterDotPatterns } from '../utils/letterDotPatterns';
@@ -33,14 +40,21 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const [showStats, setShowStats] = useState(false);
   const scoreDisplayRef = useRef<HTMLDivElement>(null); // Keep ref for potential future use or other components
   const hasQueuedIdlePreload = useRef(false);
+  const caseMatchAttemptCounter = useRef(0);
 
   const handleToggleStats = () => setShowStats(prev => !prev);
+  const handleStartNewSession = () => {
+    resetSessionScore();
+    dispatch({ type: 'SET_SCORE', payload: 0 });
+    startNewRound();
+  };
 
   // --- Game Logic Callbacks ---
   const startNewRound = useCallback(() => {
     console.log("Starting new round...");
     const newQuestionTimestamp = Date.now();
     setCurrentQuestionId(newQuestionTimestamp);
+    caseMatchAttemptCounter.current = 0;
     console.log("New Question ID (Timestamp):", newQuestionTimestamp);
     dispatch({ type: 'RESET_FEEDBACK' });
 
@@ -57,6 +71,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     // Example: If you want PICTURE_TO_WORD to be 50% and others 10% each:
     // PICTURE_TO_WORD: 50, others: 10 each (total = 100, so 50% vs 10% each)
     const exerciseWeights = {
+        [ExerciseType.CASE_MATCH]: 10,
         [ExerciseType.DOT_TRACING]: 10,
         [ExerciseType.DRAWING]: 10,
         [ExerciseType.LETTER_TO_PICTURE]: 10,
@@ -103,11 +118,15 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
      const canDoPictureToWord = availableLetters.some(letter =>
          letterGroups[letter] && letterGroups[letter].length >= 3
      );
+     const canDoCaseMatch = availableLetters.length >= 4;
      const dotTracingLetters = availableLetters.filter(letter => letterDotPatterns[letter]);
      const canDoDotTracing = dotTracingLetters.length > 0;
 
 
-    if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
+    if (newExerciseType === ExerciseType.CASE_MATCH && !canDoCaseMatch) {
+        console.warn("Cannot do Case Match, falling back...");
+        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
+    } else if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
         console.warn("Cannot do Word Scramble, falling back...");
         newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING; // Example fallback
     } else if ((newExerciseType === ExerciseType.LETTER_TO_PICTURE || newExerciseType === ExerciseType.PICTURE_TO_LETTER) && !canDoMatching) {
@@ -131,7 +150,17 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     let selectedImage: GermanLetterItem | undefined; // Define selectedImage earlier
 
     // --- Drawing Logic ---
-    if (newExerciseType === ExerciseType.DOT_TRACING) {
+    if (newExerciseType === ExerciseType.CASE_MATCH) {
+        const selectedLetters = shuffleArray(availableLetters).slice(0, 4);
+        if (selectedLetters.length < 4) {
+            dispatch({ type: 'SET_ERROR', payload: "Need at least 4 letters to start a capital/lowercase matching round." });
+            return;
+        }
+        roundPayload.uppercaseLetters = selectedLetters;
+        roundPayload.lowercaseLetters = shuffleArray(
+            selectedLetters.map(letter => letter.toLocaleLowerCase('de-DE'))
+        );
+    } else if (newExerciseType === ExerciseType.DOT_TRACING) {
         selectedLetter = getRandomElement(dotTracingLetters.length > 0 ? dotTracingLetters : availableLetters);
         if (!selectedLetter) {
              dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for dot tracing round." });
@@ -413,6 +442,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
   // --- Effects ---
   useEffect(() => {
+    const storedSessionScore = getSessionScore();
+    dispatch({ type: 'SET_SCORE', payload: storedSessionScore });
+
     if (availableLetters.length > 0) {
       startNewRound();
     } else {
@@ -444,6 +476,10 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   }, [state.correctImageItem, state.exerciseType, letterGroups]);
 
   useEffect(() => {
+    saveSessionScore(state.score);
+  }, [state.score]);
+
+  useEffect(() => {
     let timer: number | undefined;
     // --- Condition to advance round ---
     const shouldAdvance =
@@ -456,7 +492,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
     if (shouldAdvance) {
       console.log(`Advancing round automatically (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
-      timer = setTimeout(() => {
+      timer = window.setTimeout(() => {
         startNewRound();
       }, 2000); // Adjust delay as needed
     }
@@ -542,6 +578,31 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     dispatch({ type: 'SELECT_WORD', payload: { selected: word, isCorrect: isSelectionCorrect } });
   };
 
+  const handleCaseMatchAttempt = (uppercase: string, lowercase: string, isCorrect: boolean) => {
+    if (
+      isRecordingPaused ||
+      state.exerciseType !== ExerciseType.CASE_MATCH ||
+      currentQuestionId <= 0
+    ) {
+      return;
+    }
+
+    const questionId = currentQuestionId + caseMatchAttemptCounter.current;
+    caseMatchAttemptCounter.current += 1;
+
+    const record: SelectionRecord = {
+      timestamp: Date.now(),
+      questionId,
+      targetLetter: uppercase,
+      selectedAnswer: lowercase,
+      isCorrect,
+      exerciseType: state.exerciseType,
+    };
+
+    saveSelection(record);
+    onSelectionSave();
+  };
+
   // --- Rendering ---
   if (state.error) {
     return <div className="letter-match-container error"><p>{state.error}</p></div>;
@@ -566,7 +627,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         <ConfettiManager score={state.score} />
 
         <div className="letter-match-container">
-            <InstructionDisplay exerciseType={state.exerciseType} />
+            <ScoreProgressBar score={state.score} />
             <ScoreDisplay score={state.score} ref={scoreDisplayRef} />
             <div className="game-content">
                 <GameArea
@@ -574,16 +635,20 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     onImageSelect={handleImageSelect}
                     onLetterSelect={handleLetterSelect}
                     onWordSelect={handleWordSelect}
+                    onCaseMatchAttempt={handleCaseMatchAttempt}
                     dispatch={dispatch}
                 />
                 <div className="feedback-container">
                     {/* Only show text feedback for non-word-scramble types */}
-                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && (
+                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && state.exerciseType !== ExerciseType.CASE_MATCH && (
                         <FeedbackDisplay isCorrect={state.isCorrect} />
                     )}
                 </div>
                 <div className="game-controls-container">
                     <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
+                    <button onClick={handleStartNewSession} className="new-letter-button">
+                        New Session
+                    </button>
                     <button onClick={handleToggleStats} className="new-letter-button">
                         {showStats ? 'Hide Stats' : 'Show Stats'}
                     </button>

@@ -29,6 +29,7 @@ import { playWordAudio } from '../utils/audioUtils';
 import { SubmitDrawingButton } from './SubmitDrawingButton';
 import { DrawingFeedbackCanvas } from './DrawingFeedbackCanvas';
 import { ClearDrawingButton } from './ClearDrawingButton.tsx';
+import { LetterCaseMatch } from './LetterCaseMatch';
 import { letterDotPatterns } from '../utils/letterDotPatterns';
 
 // --- Word Scramble specific components (simplified examples) ---
@@ -49,11 +50,12 @@ interface GameAreaProps {
     onImageSelect: (item: GermanLetterItem) => void;
     onLetterSelect: (letter: string) => void;
     onWordSelect: (word: string) => void;
+    onCaseMatchAttempt: (uppercase: string, lowercase: string, isCorrect: boolean) => void;
     dispatch: React.Dispatch<GameAction>;
 }
 
 // Displays the core interactive area (prompt and options)
-export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, dispatch }) => {
+export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, onCaseMatchAttempt, dispatch }) => {
     const {
         exerciseType,
         currentLetter,
@@ -62,6 +64,8 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         imageOptions,
         letterOptions,
         wordOptions,
+        uppercaseLetters,
+        lowercaseLetters,
         targetWord,          // <- New state
         shuffledLetters,     // <- New state
         currentArrangement,  // <- New state
@@ -330,6 +334,17 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                     )}
                 </div>
             </div>
+        );
+    }
+    else if (exerciseType === ExerciseType.CASE_MATCH) {
+        return (
+            <LetterCaseMatch
+                uppercaseLetters={uppercaseLetters}
+                lowercaseLetters={lowercaseLetters}
+                disabled={isRoundCorrect === true}
+                onAttempt={onCaseMatchAttempt}
+                onComplete={() => dispatch({ type: 'COMPLETE_CASE_MATCH' })}
+            />
         );
     }
     else if (exerciseType === ExerciseType.WORD_SCRAMBLE) {
