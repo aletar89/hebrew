@@ -426,6 +426,13 @@ footer {
   height: 30px;
 }
 
+.score-row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 .score-number {
   font-size: 1.2rem;
   font-weight: bold;
@@ -433,7 +440,9 @@ footer {
 }
 
 .score-progress {
-  margin-bottom: 16px;
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .score-progress-track-shell {
@@ -459,6 +468,51 @@ footer {
   border-radius: 999px;
   transition: width 0.45s ease;
   box-shadow: 0 0 18px rgba(255, 215, 0, 0.25);
+}
+
+.combo-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 128px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+  cursor: default;
+}
+
+.combo-indicator-image {
+  width: 100%;
+  height: 100%;
+  max-height: 64px;
+  object-fit: contain;
+}
+
+.combo-indicator-unlocked {
+  cursor: pointer;
+  filter: drop-shadow(0 0 10px rgba(255, 214, 10, 0.8)) drop-shadow(0 0 24px rgba(255, 180, 0, 0.65));
+  animation: combo-glow 1.4s ease-in-out infinite alternate;
+}
+
+@media (hover: hover) {
+  .combo-indicator-unlocked:hover {
+    transform: scale(1.05);
+  }
+}
+
+.combo-indicator:disabled {
+  opacity: 1;
+}
+
+@keyframes combo-glow {
+  0% {
+    filter: drop-shadow(0 0 8px rgba(255, 214, 10, 0.65)) drop-shadow(0 0 18px rgba(255, 180, 0, 0.45));
+  }
+  100% {
+    filter: drop-shadow(0 0 16px rgba(255, 214, 10, 0.95)) drop-shadow(0 0 32px rgba(255, 180, 0, 0.75));
+  }
 }
 
 .stars {

@@ -151,6 +151,28 @@
   transition: left 0.08s linear;
 }
 
+.race-car-button {
+  display: block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+}
+
+.race-car-button:not(.started) .race-car-image {
+  filter: drop-shadow(0 0 10px rgba(255, 214, 10, 0.75)) drop-shadow(0 14px 18px rgba(0, 0, 0, 0.24));
+  animation: race-car-ready 1.2s ease-in-out infinite alternate;
+}
+
+.race-car-button.started {
+  cursor: default;
+}
+
+.race-car-button:disabled {
+  cursor: default;
+}
+
 .race-car {
   width: 60px;
   aspect-ratio: 236 / 466;
@@ -190,6 +212,15 @@
   text-align: center;
   font-weight: 600;
   color: #315b7c;
+}
+
+@keyframes race-car-ready {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-4px);
+  }
 }
 
 @media (max-width: 720px) {

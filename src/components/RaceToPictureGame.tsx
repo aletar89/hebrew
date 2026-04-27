@@ -38,7 +38,8 @@ const createWave = (
   distractorItems: GermanLetterItem[],
   previousCorrectWord: string | null,
   previousCorrectLane: number | null,
-  sameLaneStreak: number
+  sameLaneStreak: number,
+  hasCollectedAny: boolean
 ): WaveResult | null => {
   const availableCorrectItems =
     correctItems.length > 1 && previousCorrectWord
@@ -57,12 +58,15 @@ const createWave = (
     previousCorrectLane !== null && sameLaneStreak >= 2
       ? [0, 1, 2].filter(lane => lane !== previousCorrectLane)
       : [0, 1, 2];
-  const correctLane = getRandomElement(laneOptions) ?? 1;
+  const eligibleLaneOptions = hasCollectedAny
+    ? laneOptions
+    : laneOptions.filter(lane => lane !== 1);
+  const nextCorrectLane = getRandomElement(eligibleLaneOptions) ?? getRandomElement(laneOptions) ?? 1;
   const lanes: RaceLaneItem[] = [];
   let distractorIndex = 0;
 
   for (let lane = 0; lane < LANE_COUNT; lane += 1) {
-    if (lane === correctLane) {
+    if (lane === nextCorrectLane) {
       lanes.push({ lane, item: correctItem, isCorrect: true });
       continue;
     }
@@ -78,7 +82,7 @@ const createWave = (
   return {
     lanes,
     correctItemWord: correctItem.word,
-    correctLane,
+    correctLane: nextCorrectLane,
   };
 };
 
@@ -95,7 +99,8 @@ export function RaceToPictureGame({
   const [wave, setWave] = useState<RaceLaneItem[]>([]);
   const [rowY, setRowY] = useState(START_Y);
   const [collected, setCollected] = useState(0);
-  const [statusMessage, setStatusMessage] = useState('Collect the matching picture.');
+  const [statusMessage, setStatusMessage] = useState('Tap the car to start.');
+  const [hasStarted, setHasStarted] = useState(false);
   const [collisionFlash, setCollisionFlash] = useState<{ lane: number; isCorrect: boolean } | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const isDraggingRef = useRef(false);
@@ -122,7 +127,8 @@ export function RaceToPictureGame({
       distractorItems,
       previousCorrectWordRef.current,
       previousCorrectLaneRef.current,
-      sameLaneStreakRef.current
+      sameLaneStreakRef.current,
+      collectedRef.current > 0
     );
     if (!nextWave) {
       waveRef.current = [];
@@ -162,14 +168,15 @@ export function RaceToPictureGame({
     setCarPosition(1);
     setRowY(START_Y);
     setCollected(0);
+    setHasStarted(false);
     waveResolvedRef.current = false;
     setCollisionFlash(null);
-    setStatusMessage('Collect the matching picture.');
+    setStatusMessage('Tap the car to start.');
     previousCorrectWordRef.current = null;
     previousCorrectLaneRef.current = null;
     sameLaneStreakRef.current = 0;
     if (hasPlayableWave) {
-      const nextWave = createWave(correctItems, distractorItems, null, null, 0);
+      const nextWave = createWave(correctItems, distractorItems, null, null, 0, false);
       if (nextWave) {
         previousCorrectWordRef.current = nextWave.correctItemWord;
         previousCorrectLaneRef.current = nextWave.correctLane;
@@ -187,7 +194,7 @@ export function RaceToPictureGame({
   }, [correctItems, distractorItems, hasPlayableWave, targetLetter]);
 
   useEffect(() => {
-    if (disabled || !hasPlayableWave) {
+    if (disabled || !hasPlayableWave || !hasStarted) {
       return;
     }
 
@@ -209,10 +216,10 @@ export function RaceToPictureGame({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [disabled, hasPlayableWave]);
+  }, [disabled, hasPlayableWave, hasStarted]);
 
   useEffect(() => {
-    if (disabled || !hasPlayableWave || waveRef.current.length === 0) {
+    if (disabled || !hasPlayableWave || !hasStarted || waveRef.current.length === 0) {
       return;
     }
 
@@ -236,7 +243,13 @@ export function RaceToPictureGame({
 
         if (!chosen.isCorrect) {
           setStatusMessage(`Oops! ${chosen.item.word} does not start with ${targetLetter}.`);
-          window.setTimeout(() => onFinish(false), 0);
+          if (collectedRef.current > 0) {
+            window.setTimeout(() => onFinish(false), 0);
+            return;
+          }
+          window.setTimeout(() => {
+            spawnWave();
+          }, 180);
           return;
         }
 
@@ -258,10 +271,10 @@ export function RaceToPictureGame({
     }, TICK_MS);
 
     return () => window.clearInterval(interval);
-  }, [disabled, hasPlayableWave, onAttempt, onFinish, spawnWave, targetCount, targetLetter]);
+  }, [disabled, hasPlayableWave, hasStarted, onAttempt, onFinish, spawnWave, targetCount, targetLetter]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (disabled) {
+    if (disabled || !hasStarted) {
       return;
     }
 
@@ -272,7 +285,7 @@ export function RaceToPictureGame({
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDraggingRef.current || disabled) {
+    if (!isDraggingRef.current || disabled || !hasStarted) {
       return;
     }
 
@@ -285,6 +298,15 @@ export function RaceToPictureGame({
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+  };
+
+  const handleStartRace = () => {
+    if (disabled || hasStarted) {
+      return;
+    }
+
+    setHasStarted(true);
+    setStatusMessage('Collect the matching picture.');
   };
 
   if (!hasPlayableWave) {
@@ -370,6 +392,13 @@ export function RaceToPictureGame({
           className="race-car-row"
           style={{ left: `${(carPosition / (LANE_COUNT - 1)) * 100}%` }}
         >
+          <button
+            type="button"
+            className={`race-car-button${hasStarted ? ' started' : ''}`}
+            onClick={handleStartRace}
+            aria-label={hasStarted ? 'Race in progress' : 'Start the race'}
+            disabled={disabled}
+          >
           <div className="race-car">
             <img
               src="/assets/car.png"
@@ -379,6 +408,7 @@ export function RaceToPictureGame({
             />
             <div className="race-car-letter">{targetLetter}</div>
           </div>
+          </button>
         </div>
       </div>
 

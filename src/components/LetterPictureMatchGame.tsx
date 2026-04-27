@@ -8,6 +8,7 @@ import { FeedbackDisplay } from './FeedbackDisplay';
 import { GameArea } from './GameArea';
 import { NextRoundButton } from './NextRoundButton';
 import { StatsDisplay } from './StatsDisplay';
+import { ComboIndicator } from './ComboIndicator';
 import {
   saveSelection,
   SelectionRecord,
@@ -23,6 +24,7 @@ import { enqueueIdleTasks, preloadImage } from '../utils/preloadUtils';
 import { preloadWordAudio } from '../utils/audioUtils';
 
 // --- Game Logic Component ---
+const RACE_COMBO_UNLOCK = 9;
 
 export interface LetterPictureMatchProps {
   letterGroups: Record<string, GermanLetterItem[]>;
@@ -43,6 +45,15 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const caseMatchAttemptCounter = useRef(0);
   const hasLoadedStoredScore = useRef(false);
   const previousScoreRef = useRef(0);
+  const handledOutcomeQuestionIdRef = useRef<number | null>(null);
+  const [comboCount, setComboCount] = useState(0);
+  const raceCandidateLetters = availableLetters.filter(letter =>
+    letterGroups[letter] && letterGroups[letter].length >= 4
+  );
+  const canDoRaceToPicture = raceCandidateLetters.length > 0 &&
+    availableLetters.some(letter =>
+      !raceCandidateLetters.includes(letter) && (letterGroups[letter]?.length ?? 0) > 0
+    );
 
   const handleToggleStats = () => setShowStats(prev => !prev);
   const handleStartNewSession = () => {
@@ -52,7 +63,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   };
 
   // --- Game Logic Callbacks ---
-  const startNewRound = useCallback(() => {
+  const startNewRound = useCallback((forcedExerciseType?: ExerciseType) => {
     console.log("Starting new round...");
     const newQuestionTimestamp = Date.now();
     setCurrentQuestionId(newQuestionTimestamp);
@@ -65,37 +76,39 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         return;
     }
 
-    const rand = Math.random();
-    let newExerciseType: ExerciseType = ExerciseType.PICTURE_TO_WORD;
-    const exerciseWeights = {
-        [ExerciseType.CASE_MATCH]: 10,
-        [ExerciseType.DOT_TRACING]: 10,
-        [ExerciseType.DRAWING]: 10,
-        [ExerciseType.LETTER_TO_PICTURE]: 10,
-        [ExerciseType.PICTURE_TO_LETTER]: 10,
-        [ExerciseType.PICTURE_TO_WORD]: 0,
-        [ExerciseType.WORD_TO_PICTURE]: 0,
-        [ExerciseType.WORD_SCRAMBLE]: 0,
-        [ExerciseType.RACE_TO_PICTURE]: 0,
-    };
-    const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
-    let cumulativeWeight = 0;
+    let newExerciseType: ExerciseType = forcedExerciseType ?? ExerciseType.PICTURE_TO_WORD;
+    if (!forcedExerciseType) {
+      const rand = Math.random();
+      const exerciseWeights = {
+          [ExerciseType.CASE_MATCH]: 10,
+          [ExerciseType.DOT_TRACING]: 10,
+          [ExerciseType.DRAWING]: 10,
+          [ExerciseType.LETTER_TO_PICTURE]: 10,
+          [ExerciseType.PICTURE_TO_LETTER]: 10,
+          [ExerciseType.PICTURE_TO_WORD]: 0,
+          [ExerciseType.WORD_TO_PICTURE]: 0,
+          [ExerciseType.WORD_SCRAMBLE]: 0,
+          [ExerciseType.RACE_TO_PICTURE]: 0,
+      };
+      const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
+      let cumulativeWeight = 0;
 
-    for (const [exerciseType, weight] of Object.entries(exerciseWeights)) {
-        cumulativeWeight += weight;
-        if (rand < cumulativeWeight / totalWeight) {
-            newExerciseType = exerciseType as ExerciseType;
-            break;
-        }
-    }
+      for (const [exerciseType, weight] of Object.entries(exerciseWeights)) {
+          cumulativeWeight += weight;
+          if (rand < cumulativeWeight / totalWeight) {
+              newExerciseType = exerciseType as ExerciseType;
+              break;
+          }
+      }
 
-    if (!newExerciseType) {
-        newExerciseType = ExerciseType.PICTURE_TO_WORD;
-        console.warn("No exercise type selected, falling back to PICTURE_TO_WORD");
-        console.warn("rand:", rand);
-        console.warn("cumulativeWeight:", cumulativeWeight);
-        console.warn("totalWeight:", totalWeight);
-        console.warn("newExerciseType:", newExerciseType);
+      if (!newExerciseType) {
+          newExerciseType = ExerciseType.PICTURE_TO_WORD;
+          console.warn("No exercise type selected, falling back to PICTURE_TO_WORD");
+          console.warn("rand:", rand);
+          console.warn("cumulativeWeight:", cumulativeWeight);
+          console.warn("totalWeight:", totalWeight);
+          console.warn("newExerciseType:", newExerciseType);
+      }
     }
 
     const canDoWordScramble = availableLetters.some(letter =>
@@ -113,14 +126,6 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     const canDoCaseMatch = availableLetters.length >= 4;
     const dotTracingLetters = availableLetters.filter(letter => letterDotPatterns[letter]);
     const canDoDotTracing = dotTracingLetters.length > 0;
-    const raceCandidateLetters = availableLetters.filter(letter =>
-        letterGroups[letter] && letterGroups[letter].length >= 4
-    );
-    const canDoRaceToPicture = raceCandidateLetters.length > 0 &&
-      availableLetters.some(letter =>
-        !raceCandidateLetters.includes(letter) && (letterGroups[letter]?.length ?? 0) > 0
-      );
-
     if (newExerciseType === ExerciseType.CASE_MATCH && !canDoCaseMatch) {
         console.warn("Cannot do Case Match, falling back...");
         newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
@@ -388,7 +393,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
       payload: roundPayload
     });
 
-  }, [availableLetters, letterGroups]); // Dependencies: letterGroups added
+  }, [availableLetters, canDoRaceToPicture, letterGroups, raceCandidateLetters]); // Dependencies: letterGroups added
 
   // --- Effects ---
   useEffect(() => {
@@ -436,6 +441,20 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     saveSessionScore(state.score, scoreIncreased ? Date.now() : undefined);
     previousScoreRef.current = state.score;
   }, [state.score]);
+
+  useEffect(() => {
+    if (state.isCorrect === null || currentQuestionId <= 0) {
+      return;
+    }
+
+    if (handledOutcomeQuestionIdRef.current === currentQuestionId) {
+      return;
+    }
+
+    handledOutcomeQuestionIdRef.current = currentQuestionId;
+
+    setComboCount(previousCombo => (state.isCorrect ? previousCombo + 1 : 0));
+  }, [currentQuestionId, state.isCorrect]);
 
   useEffect(() => {
     let timer: number | undefined;
@@ -588,6 +607,14 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     onSelectionSave();
   };
 
+  const handleActivateRace = useCallback(() => {
+    if (comboCount < RACE_COMBO_UNLOCK || state.exerciseType === ExerciseType.RACE_TO_PICTURE || !canDoRaceToPicture) {
+      return;
+    }
+
+    startNewRound(ExerciseType.RACE_TO_PICTURE);
+  }, [canDoRaceToPicture, comboCount, startNewRound, state.exerciseType]);
+
   // --- Rendering ---
   if (state.error) {
     return <div className="letter-match-container error"><p>{state.error}</p></div>;
@@ -612,7 +639,14 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         <ConfettiManager score={state.score} />
 
         <div className="letter-match-container">
-            <ScoreProgressBar score={state.score} />
+            <div className="score-row">
+                <ScoreProgressBar score={state.score} />
+                <ComboIndicator
+                    comboCount={comboCount}
+                    unlocked={comboCount >= RACE_COMBO_UNLOCK && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && canDoRaceToPicture}
+                    onActivateRace={handleActivateRace}
+                />
+            </div>
             <ScoreDisplay score={state.score} ref={scoreDisplayRef} />
             <div className="game-content">
                 <GameArea
@@ -631,7 +665,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     )}
                 </div>
                 <div className="game-controls-container">
-                    <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
+                    <NextRoundButton onClick={() => startNewRound()} exerciseType={state.exerciseType} />
                     <button onClick={handleStartNewSession} className="new-letter-button">
                         New Session
                     </button>
