@@ -8,6 +8,7 @@ import { FeedbackDisplay } from './FeedbackDisplay';
 import { GameArea } from './GameArea';
 import { NextRoundButton } from './NextRoundButton';
 import { StatsDisplay } from './StatsDisplay';
+import { ComboIndicator } from './ComboIndicator';
 import {
   saveSelection,
   SelectionRecord,
@@ -23,6 +24,7 @@ import { enqueueIdleTasks, preloadImage } from '../utils/preloadUtils';
 import { preloadWordAudio } from '../utils/audioUtils';
 
 // --- Game Logic Component ---
+const RACE_COMBO_UNLOCK = 9;
 
 export interface LetterPictureMatchProps {
   letterGroups: Record<string, GermanLetterItem[]>;
@@ -42,6 +44,17 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const scoreDisplayRef = useRef<HTMLDivElement>(null); // Keep ref for potential future use or other components
   const hasQueuedIdlePreload = useRef(false);
   const caseMatchAttemptCounter = useRef(0);
+  const hasLoadedStoredScore = useRef(false);
+  const previousScoreRef = useRef(0);
+  const handledOutcomeQuestionIdRef = useRef<number | null>(null);
+  const [comboCount, setComboCount] = useState(0);
+  const raceCandidateLetters = availableLetters.filter(letter =>
+    letterGroups[letter] && letterGroups[letter].length >= 4
+  );
+  const canDoRaceToPicture = raceCandidateLetters.length > 0 &&
+    availableLetters.some(letter =>
+      !raceCandidateLetters.includes(letter) && (letterGroups[letter]?.length ?? 0) > 0
+    );
 
   const handleToggleStats = () => setShowStats(prev => !prev);
   const handleStartNewSession = () => {
@@ -69,7 +82,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   }, [isConfirmingNewSession]);
 
   // --- Game Logic Callbacks ---
-  const startNewRound = useCallback(() => {
+  const startNewRound = useCallback((forcedExerciseType?: ExerciseType) => {
     console.log("Starting new round...");
     setIsConfirmingNewSession(false);
     const newQuestionTimestamp = Date.now();
@@ -83,99 +96,90 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         return;
     }
 
-    const rand = Math.random();
-    let newExerciseType: ExerciseType = ExerciseType.PICTURE_TO_WORD; // Default fallback
-    
-    // Define weights for each exercise type (easily adjustable)
-    // The probability of each exercise = weight / totalWeight
-    // Example: If you want PICTURE_TO_WORD to be 50% and others 10% each:
-    // PICTURE_TO_WORD: 50, others: 10 each (total = 100, so 50% vs 10% each)
-    const exerciseWeights = {
-        [ExerciseType.CASE_MATCH]: 10,
-        [ExerciseType.DOT_TRACING]: 7,
-        [ExerciseType.DRAWING]: 7,
-        [ExerciseType.LETTER_TO_PICTURE]: 10,
-        [ExerciseType.PICTURE_TO_LETTER]: 10,
-        [ExerciseType.PICTURE_TO_WORD]: 0,
-        [ExerciseType.WORD_TO_PICTURE]: 0,
-        [ExerciseType.WORD_SCRAMBLE]: 0
-    };
-    
-    // Calculate total weight
-    const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
-    
-    // Calculate cumulative weights and select exercise type
-    let cumulativeWeight = 0;
-    for (const [exerciseType, weight] of Object.entries(exerciseWeights)) {
-        cumulativeWeight += weight;
-        if (rand < cumulativeWeight / totalWeight) {
-            newExerciseType = exerciseType as ExerciseType;
-            break;
-        }
-    }
-    
-    // Fallback to first exercise type if something goes wrong
-    if (!newExerciseType) {
-        newExerciseType = ExerciseType.PICTURE_TO_WORD;
-        console.warn("No exercise type selected, falling back to PICTURE_TO_WORD");
-        console.warn("rand:", rand);
-        console.warn("cumulativeWeight:", cumulativeWeight);
-        console.warn("totalWeight:", totalWeight);
-        console.warn("newExerciseType:", newExerciseType);
+    let newExerciseType: ExerciseType = forcedExerciseType ?? ExerciseType.PICTURE_TO_WORD;
+    if (!forcedExerciseType) {
+      const rand = Math.random();
+      const exerciseWeights = {
+          [ExerciseType.CASE_MATCH]: 10,
+          [ExerciseType.DOT_TRACING]: 7,
+          [ExerciseType.DRAWING]: 7,
+          [ExerciseType.LETTER_TO_PICTURE]: 10,
+          [ExerciseType.PICTURE_TO_LETTER]: 10,
+          [ExerciseType.PICTURE_TO_WORD]: 0,
+          [ExerciseType.WORD_TO_PICTURE]: 0,
+          [ExerciseType.WORD_SCRAMBLE]: 0,
+          [ExerciseType.RACE_TO_PICTURE]: 0,
+      };
+      const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
+      let cumulativeWeight = 0;
+
+      for (const [exerciseType, weight] of Object.entries(exerciseWeights)) {
+          cumulativeWeight += weight;
+          if (rand < cumulativeWeight / totalWeight) {
+              newExerciseType = exerciseType as ExerciseType;
+              break;
+          }
+      }
+
+      if (!newExerciseType) {
+          newExerciseType = ExerciseType.PICTURE_TO_WORD;
+          console.warn("No exercise type selected, falling back to PICTURE_TO_WORD");
+          console.warn("rand:", rand);
+          console.warn("cumulativeWeight:", cumulativeWeight);
+          console.warn("totalWeight:", totalWeight);
+          console.warn("newExerciseType:", newExerciseType);
+      }
     }
 
-    // Fallback if selected type is not possible (e.g., Word Scramble needs words > 1 letter)
-    // This needs refinement based on actual data
     const canDoWordScramble = availableLetters.some(letter =>
         letterGroups[letter]?.some(item => item.word && item.word.length > 1 && item.word.length <= 5)
     );
-     const canDoMatching = availableLetters.some(letter =>
-         letterGroups[letter]?.length > 0
-     );
-     const canDoWordToPicture = availableLetters.some(letter =>
-         letterGroups[letter] && letterGroups[letter].length >= 3
-     );
-     const canDoPictureToWord = availableLetters.some(letter =>
-         letterGroups[letter] && letterGroups[letter].length >= 3
-     );
-     const canDoCaseMatch = availableLetters.length >= 4;
-     const dotTracingLetters = availableLetters.filter(letter => letterDotPatterns[letter]);
-     const canDoDotTracing = dotTracingLetters.length > 0;
-
-
+    const canDoMatching = availableLetters.some(letter =>
+        letterGroups[letter]?.length > 0
+    );
+    const canDoWordToPicture = availableLetters.some(letter =>
+        letterGroups[letter] && letterGroups[letter].length >= 3
+    );
+    const canDoPictureToWord = availableLetters.some(letter =>
+        letterGroups[letter] && letterGroups[letter].length >= 3
+    );
+    const canDoCaseMatch = availableLetters.length >= 4;
+    const dotTracingLetters = availableLetters.filter(letter => letterDotPatterns[letter]);
+    const canDoDotTracing = dotTracingLetters.length > 0;
     if (newExerciseType === ExerciseType.CASE_MATCH && !canDoCaseMatch) {
         console.warn("Cannot do Case Match, falling back...");
         newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
     } else if (newExerciseType === ExerciseType.WORD_SCRAMBLE && !canDoWordScramble) {
         console.warn("Cannot do Word Scramble, falling back...");
-        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING; // Example fallback
+        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
     } else if ((newExerciseType === ExerciseType.LETTER_TO_PICTURE || newExerciseType === ExerciseType.PICTURE_TO_LETTER) && !canDoMatching) {
-         console.warn("Cannot do Matching, falling back to Drawing...");
-         newExerciseType = ExerciseType.DRAWING;
+        console.warn("Cannot do Matching, falling back to Drawing...");
+        newExerciseType = ExerciseType.DRAWING;
     } else if (newExerciseType === ExerciseType.WORD_TO_PICTURE && !canDoWordToPicture) {
-         console.warn("Cannot do Word to Picture, falling back...");
-         newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
+        console.warn("Cannot do Word to Picture, falling back...");
+        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
     } else if (newExerciseType === ExerciseType.PICTURE_TO_WORD && !canDoPictureToWord) {
-         console.warn("Cannot do Picture to Word, falling back...");
-         newExerciseType = canDoMatching ? ExerciseType.PICTURE_TO_LETTER : ExerciseType.DRAWING;
+        console.warn("Cannot do Picture to Word, falling back...");
+        newExerciseType = canDoMatching ? ExerciseType.PICTURE_TO_LETTER : ExerciseType.DRAWING;
     } else if (newExerciseType === ExerciseType.DOT_TRACING && !canDoDotTracing) {
-         console.warn("Cannot do Dot Tracing, falling back to Drawing...");
-         newExerciseType = ExerciseType.DRAWING;
+        console.warn("Cannot do Dot Tracing, falling back to Drawing...");
+        newExerciseType = ExerciseType.DRAWING;
+    } else if (newExerciseType === ExerciseType.RACE_TO_PICTURE && !canDoRaceToPicture) {
+        console.warn("Cannot do Race to Picture, falling back...");
+        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
     }
-    // Add more fallback logic as needed
-
 
     let roundPayload: Partial<GameState> = { exerciseType: newExerciseType };
     let selectedLetter: string | undefined;
-    let selectedImage: GermanLetterItem | undefined; // Define selectedImage earlier
+    let selectedImage: GermanLetterItem | undefined;
 
-    // --- Drawing Logic ---
     if (newExerciseType === ExerciseType.CASE_MATCH) {
         const selectedLetters = shuffleArray(availableLetters).slice(0, 4);
         if (selectedLetters.length < 4) {
             dispatch({ type: 'SET_ERROR', payload: "Need at least 4 letters to start a capital/lowercase matching round." });
             return;
         }
+
         roundPayload.uppercaseLetters = selectedLetters;
         roundPayload.lowercaseLetters = shuffleArray(
             selectedLetters.map(letter => letter.toLocaleLowerCase('de-DE'))
@@ -183,270 +187,221 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     } else if (newExerciseType === ExerciseType.DOT_TRACING) {
         selectedLetter = getRandomElement(dotTracingLetters.length > 0 ? dotTracingLetters : availableLetters);
         if (!selectedLetter) {
-             dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for dot tracing round." });
-             return;
+            dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for dot tracing round." });
+            return;
         }
+
         roundPayload.currentLetter = selectedLetter;
     } else if (newExerciseType === ExerciseType.DRAWING) {
         selectedLetter = getRandomElement(availableLetters);
         if (!selectedLetter) {
-             dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for drawing round." });
-             return;
+            dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for drawing round." });
+            return;
         }
+
         roundPayload.currentLetter = selectedLetter;
-        // Drawing doesn't use correctImageItem directly in the round setup
-        // Find an image for potential display later if needed, but not crucial for round start
-         const potentialImages = letterGroups[selectedLetter];
-         if (potentialImages && potentialImages.length > 0) {
-             roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
-         }
+        const potentialImages = letterGroups[selectedLetter];
+        if (potentialImages && potentialImages.length > 0) {
+            roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
+        }
+    } else if (newExerciseType === ExerciseType.RACE_TO_PICTURE) {
+        const selectedRaceLetter = getRandomElement(raceCandidateLetters);
+        if (!selectedRaceLetter) {
+            dispatch({ type: 'SET_ERROR', payload: "Failed to select a letter for race mode." });
+            return;
+        }
 
+        const correctRaceItems = shuffleArray(letterGroups[selectedRaceLetter]).slice(0, 4);
+        const distractorPool = shuffleArray(
+            availableLetters
+                .filter(letter => letter !== selectedRaceLetter)
+                .flatMap(letter => letterGroups[letter] ?? [])
+        ).slice(0, 8);
 
+        if (correctRaceItems.length < 4 || distractorPool.length < 2) {
+            dispatch({ type: 'SET_ERROR', payload: `Need more pictures to start race mode for ${selectedRaceLetter}.` });
+            return;
+        }
+
+        roundPayload.currentLetter = selectedRaceLetter;
+        roundPayload.raceCorrectItems = correctRaceItems;
+        roundPayload.raceDistractorItems = distractorPool;
+        roundPayload.raceTargetCount = 50;
     } else {
-        // --- Logic for Non-Drawing Rounds (Matching & Word Scramble) ---
-
-        // Filter letters suitable for the chosen exercise type
         let candidateLetters: string[];
         if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
             candidateLetters = availableLetters.filter(letter =>
                 letterGroups[letter]?.some(item => item.word && item.word.length > 1 && item.word.length <= 5)
             );
-        } else { // LETTER_TO_PICTURE or PICTURE_TO_LETTER
+        } else {
             candidateLetters = availableLetters.filter(letter =>
                 letterGroups[letter] && letterGroups[letter].length > 0
             );
         }
 
-
         if (candidateLetters.length === 0) {
-             // This case should be less likely due to fallbacks above, but handle defensively
-             console.error(`No candidate letters found for exercise type ${newExerciseType}. Falling back to DRAWING.`);
-             newExerciseType = ExerciseType.DRAWING;
-             selectedLetter = getRandomElement(availableLetters);
-             if (!selectedLetter) {
-                 dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for fallback drawing round." });
-                 return;
-             }
-             roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
-              // Assign a potential image for drawing's correctImageItem here too
-             const potentialImages = letterGroups[selectedLetter];
-             if (potentialImages && potentialImages.length > 0) {
-                  roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
-             }
+            console.error(`No candidate letters found for exercise type ${newExerciseType}. Falling back to DRAWING.`);
+            newExerciseType = ExerciseType.DRAWING;
+            selectedLetter = getRandomElement(availableLetters);
+            if (!selectedLetter) {
+                dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for fallback drawing round." });
+                return;
+            }
 
+            roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
+            const potentialImages = letterGroups[selectedLetter];
+            if (potentialImages && potentialImages.length > 0) {
+                roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
+            }
         } else {
-             // Select letter using weighted random logic based on history FOR MATCHING GAMES
-             // For Word Scramble, use simple random selection
+            if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
+                selectedLetter = getRandomElement(candidateLetters);
+            } else {
+                const history = getSelectionHistory();
+                const weightedLetters = calculateLetterWeights(history, candidateLetters);
+                selectedLetter = getWeightedRandomLetter(weightedLetters) ?? getRandomElement(candidateLetters);
+            }
 
-             if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
-                 console.log(`Selecting random letter for Word Scramble from ${candidateLetters.length} candidates...`);
-                 selectedLetter = getRandomElement(candidateLetters);
-             } else {
-                 // Use weighted random for LETTER_TO_PICTURE and PICTURE_TO_LETTER
-                 console.log(`Calculating weights for next round (${newExerciseType})...`);
-                 const history = getSelectionHistory();
-                 const weightedLetters = calculateLetterWeights(history, candidateLetters);
-                 selectedLetter = getWeightedRandomLetter(weightedLetters);
+            if (!selectedLetter) {
+                console.error("Failed to select any letter for the round, even with fallback. Reverting to random DRAWING.");
+                newExerciseType = ExerciseType.DRAWING;
+                selectedLetter = getRandomElement(availableLetters);
+                if (!selectedLetter) {
+                    dispatch({ type: 'SET_ERROR', payload: "CRITICAL: Failed to select any letter for fallback drawing round." });
+                    return;
+                }
 
-                 if (!selectedLetter) {
-                     console.error("Weighted random selection failed. Falling back to uniform random from candidateLetters.");
-                     selectedLetter = getRandomElement(candidateLetters); // Fallback still needed
-                 }
-             }
+                roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
+                const potentialImages = letterGroups[selectedLetter];
+                if (potentialImages && potentialImages.length > 0) {
+                    roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
+                }
 
-             // Fallback if selection still failed (should be rare)
-             if (!selectedLetter) {
-                 console.error("Failed to select any letter for the round, even with fallback. Reverting to random DRAWING.");
-                 // Minimal payload for a drawing fallback
-                 newExerciseType = ExerciseType.DRAWING;
-                 selectedLetter = getRandomElement(availableLetters);
-                 if (!selectedLetter) {
-                     dispatch({ type: 'SET_ERROR', payload: "CRITICAL: Failed to select any letter for fallback drawing round." });
-                     return;
-                 }
-                 roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
-                 const potentialImages = letterGroups[selectedLetter];
-                 if (potentialImages && potentialImages.length > 0) {
-                     roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
-                 }
-                  dispatch({ type: 'START_ROUND', payload: roundPayload }); // Dispatch fallback round
-                  return; // Exit startNewRound early
-             }
+                dispatch({ type: 'START_ROUND', payload: roundPayload });
+                return;
+            }
 
-             console.log(`Selected letter: ${selectedLetter}`);
-             roundPayload.currentLetter = selectedLetter; // Store the driving letter
-
-             // Select Image Item based on the selected letter
-             const possibleImages = letterGroups[selectedLetter].filter(item =>
-                 // Ensure valid word for scramble (length > 1 and <= 5)
-                 newExerciseType === ExerciseType.WORD_SCRAMBLE
+            roundPayload.currentLetter = selectedLetter;
+            const possibleImages = letterGroups[selectedLetter].filter(item =>
+                newExerciseType === ExerciseType.WORD_SCRAMBLE
                     ? (item.word && item.word.length > 1 && item.word.length <= 5)
                     : true
-             );
+            );
 
-             if (possibleImages.length === 0) {
-                  // This indicates an issue with filtering or data inconsistency
-                  dispatch({ type: 'SET_ERROR', payload: `No suitable images/words found for letter ${selectedLetter} and exercise type ${newExerciseType}.` });
-                  return;
-             }
-             selectedImage = possibleImages[Math.floor(Math.random() * possibleImages.length)];
-             if (!selectedImage) { // Should not happen if possibleImages is not empty
-                 dispatch({ type: 'SET_ERROR', payload: `Internal error selecting image for letter ${selectedLetter}.` });
-                 return;
+            if (possibleImages.length === 0) {
+                dispatch({ type: 'SET_ERROR', payload: `No suitable images/words found for letter ${selectedLetter} and exercise type ${newExerciseType}.` });
+                return;
             }
-             roundPayload.correctImageItem = selectedImage; // Essential for all non-drawing types
 
+            selectedImage = possibleImages[Math.floor(Math.random() * possibleImages.length)];
+            if (!selectedImage) {
+                dispatch({ type: 'SET_ERROR', payload: `Internal error selecting image for letter ${selectedLetter}.` });
+                return;
+            }
 
-            // --- Prepare Exercise-Specific Options ---
+            roundPayload.correctImageItem = selectedImage;
+
             if (newExerciseType === ExerciseType.LETTER_TO_PICTURE) {
+                const correctImage = selectedImage;
                 const incorrectOptions: GermanLetterItem[] = [];
-                const otherLetters = availableLetters.filter(l => l !== selectedLetter && letterGroups[l]?.length > 0); // Ensure other letters have images
+                const otherLetters = availableLetters.filter(letter => letter !== selectedLetter && letterGroups[letter]?.length > 0);
                 const shuffledOtherLetters = shuffleArray(otherLetters);
 
-                for (let i = 0; i < Math.min(2, shuffledOtherLetters.length); i++) {
+                for (let i = 0; i < Math.min(2, shuffledOtherLetters.length); i += 1) {
                     const incorrectLetter = shuffledOtherLetters[i];
-                    const incorrectImages = letterGroups[incorrectLetter]; // Already checked for length > 0
+                    const incorrectImages = letterGroups[incorrectLetter];
                     const incorrectImage = incorrectImages[Math.floor(Math.random() * incorrectImages.length)];
                     incorrectOptions.push(incorrectImage);
                 }
 
-                // If not enough options from other letters, use other images from the same letter
-                 if (incorrectOptions.length < 2 && selectedImage) {
-                     const otherImagesFromSameLetter = letterGroups[selectedLetter].filter(img => img.imageUrl !== selectedImage!.imageUrl); // Use selectedImage
+                if (incorrectOptions.length < 2) {
+                    const otherImagesFromSameLetter = letterGroups[selectedLetter].filter(img => img.imageUrl !== correctImage.imageUrl);
                     const shuffledSameLetterImages = shuffleArray(otherImagesFromSameLetter);
-                    for (let i = 0; i < Math.min(2 - incorrectOptions.length, shuffledSameLetterImages.length); i++) {
+                    for (let i = 0; i < Math.min(2 - incorrectOptions.length, shuffledSameLetterImages.length); i += 1) {
                         incorrectOptions.push(shuffledSameLetterImages[i]);
                     }
                 }
 
-                roundPayload.imageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
-
+                roundPayload.imageOptions = shuffleArray([correctImage, ...incorrectOptions]);
             } else if (newExerciseType === ExerciseType.PICTURE_TO_LETTER) {
-                 const otherLetters = availableLetters.filter(l => l !== selectedLetter);
-                 const shuffledOtherLetters = shuffleArray(otherLetters);
-                 const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
-                 roundPayload.letterOptions = shuffleArray([selectedLetter, ...finalIncorrectLetters]);
-
+                const otherLetters = availableLetters.filter(letter => letter !== selectedLetter);
+                const shuffledOtherLetters = shuffleArray(otherLetters);
+                const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
+                roundPayload.letterOptions = shuffleArray([selectedLetter, ...finalIncorrectLetters]);
             } else if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
-                 const targetWord = selectedImage?.word; // Get word from the selected image
-                 // Re-check length constraint here for safety, though filtering above should handle it
-                 if (!targetWord || targetWord.length <= 1 || targetWord.length > 5) {
-                      // This case should have been prevented by candidate letter filtering, but handle defensively
-                     dispatch({ type: 'SET_ERROR', payload: `Selected image for Word Scramble has invalid word: '${targetWord}' (length ${targetWord?.length}) for letter ${selectedLetter}.` });
-                     return; // Or fallback again
-                 }
-                 roundPayload.targetWord = targetWord;
-                 roundPayload.shuffledLetters = shuffleArray(targetWord.split(''));
-                 // currentArrangement is initialized by the reducer based on targetWord length
-            } else if (newExerciseType === ExerciseType.WORD_TO_PICTURE) {
-                // Find letters that have multiple words (at least 3 for 3 options)
-                const candidateLetters = availableLetters.filter(letter =>
-                    letterGroups[letter] && letterGroups[letter].length >= 3
-                );
-
-                if (candidateLetters.length === 0) {
-                    console.warn("Cannot do Word to Picture - no letters with enough words");
-                    newExerciseType = ExerciseType.LETTER_TO_PICTURE;
-                    // Fallback logic will be handled in the next iteration
+                const targetWord = selectedImage.word;
+                if (!targetWord || targetWord.length <= 1 || targetWord.length > 5) {
+                    dispatch({ type: 'SET_ERROR', payload: `Selected image for Word Scramble has invalid word: '${targetWord}' (length ${targetWord?.length}) for letter ${selectedLetter}.` });
                     return;
                 }
 
-                // Select a letter using weighted random
-                const history = getSelectionHistory();
-                const weightedLetters = calculateLetterWeights(history, candidateLetters);
-                selectedLetter = getWeightedRandomLetter(weightedLetters);
-                
-                if (!selectedLetter) {
-                    selectedLetter = getRandomElement(candidateLetters);
-                }
+                roundPayload.targetWord = targetWord;
+                roundPayload.shuffledLetters = shuffleArray(targetWord.split(''));
+            } else if (newExerciseType === ExerciseType.WORD_TO_PICTURE) {
+                const candidateWordLetters = availableLetters.filter(letter =>
+                    letterGroups[letter] && letterGroups[letter].length >= 3
+                );
+                selectedLetter = getWeightedRandomLetter(calculateLetterWeights(getSelectionHistory(), candidateWordLetters))
+                  ?? getRandomElement(candidateWordLetters);
 
                 if (!selectedLetter) {
                     dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for Word to Picture round." });
                     return;
                 }
 
-                // Get all words for this letter
                 const allWordsForLetter = letterGroups[selectedLetter];
-                
-                // Select the correct word/image
                 selectedImage = getRandomElement(allWordsForLetter);
-                
                 if (!selectedImage) {
                     dispatch({ type: 'SET_ERROR', payload: `Failed to select image for letter ${selectedLetter}.` });
                     return;
                 }
-                
-                // Get 2 other words from the same letter as incorrect options
-                const otherWords = allWordsForLetter.filter((img: GermanLetterItem) => img.word !== selectedImage!.word);
-                const shuffledOtherWords = shuffleArray(otherWords);
-                const incorrectOptions = shuffledOtherWords.slice(0, 2);
-                
-                // If we don't have enough other words, this shouldn't happen due to filtering
+                const correctImage = selectedImage;
+
+                const incorrectOptions = shuffleArray(
+                    allWordsForLetter.filter(img => img.word !== correctImage.word)
+                ).slice(0, 2);
+
                 if (incorrectOptions.length < 2) {
-                    console.warn(`Not enough words for letter ${selectedLetter}`);
-                    newExerciseType = ExerciseType.LETTER_TO_PICTURE;
-                    // Fallback logic will be handled in the next iteration
+                    dispatch({ type: 'SET_ERROR', payload: `Not enough words for letter ${selectedLetter}.` });
                     return;
                 }
 
-                roundPayload.currentWord = selectedImage.word;
+                roundPayload.currentWord = correctImage.word;
                 roundPayload.currentLetter = selectedLetter;
-                roundPayload.correctImageItem = selectedImage;
-                roundPayload.imageOptions = shuffleArray([selectedImage, ...incorrectOptions]);
+                roundPayload.correctImageItem = correctImage;
+                roundPayload.imageOptions = shuffleArray([correctImage, ...incorrectOptions]);
             } else if (newExerciseType === ExerciseType.PICTURE_TO_WORD) {
-                // Find letters that have multiple words (at least 3 for 3 options)
-                const candidateLetters = availableLetters.filter(letter =>
+                const candidateWordLetters = availableLetters.filter(letter =>
                     letterGroups[letter] && letterGroups[letter].length >= 3
                 );
-
-                if (candidateLetters.length === 0) {
-                    console.warn("Cannot do Picture to Word - no letters with enough words");
-                    newExerciseType = ExerciseType.PICTURE_TO_LETTER;
-                    // Fallback logic will be handled in the next iteration
-                    return;
-                }
-
-                // Select a letter using weighted random
-                const history = getSelectionHistory();
-                const weightedLetters = calculateLetterWeights(history, candidateLetters);
-                selectedLetter = getWeightedRandomLetter(weightedLetters);
-                
-                if (!selectedLetter) {
-                    selectedLetter = getRandomElement(candidateLetters);
-                }
+                selectedLetter = getWeightedRandomLetter(calculateLetterWeights(getSelectionHistory(), candidateWordLetters))
+                  ?? getRandomElement(candidateWordLetters);
 
                 if (!selectedLetter) {
                     dispatch({ type: 'SET_ERROR', payload: "Failed to select any letter for Picture to Word round." });
                     return;
                 }
 
-                // Get all words for this letter
                 const allWordsForLetter = letterGroups[selectedLetter];
-                
-                // Select the correct word/image
                 selectedImage = getRandomElement(allWordsForLetter);
-                
                 if (!selectedImage) {
                     dispatch({ type: 'SET_ERROR', payload: `Failed to select image for letter ${selectedLetter}.` });
                     return;
                 }
-                
-                // Get 2 other words from the same letter as incorrect options
-                const otherWords = allWordsForLetter.filter((img: GermanLetterItem) => img.word !== selectedImage!.word);
-                const shuffledOtherWords = shuffleArray(otherWords);
-                const incorrectWordOptions = shuffledOtherWords.slice(0, 2).map(img => img.word);
-                
-                // If we don't have enough other words, this shouldn't happen due to filtering
+                const correctImage = selectedImage;
+
+                const incorrectWordOptions = shuffleArray(
+                    allWordsForLetter.filter(img => img.word !== correctImage.word)
+                ).slice(0, 2).map(img => img.word);
+
                 if (incorrectWordOptions.length < 2) {
-                    console.warn(`Not enough words for letter ${selectedLetter}`);
-                    newExerciseType = ExerciseType.PICTURE_TO_LETTER;
-                    // Fallback logic will be handled in the next iteration
+                    dispatch({ type: 'SET_ERROR', payload: `Not enough words for letter ${selectedLetter}.` });
                     return;
                 }
 
                 roundPayload.currentLetter = selectedLetter;
-                roundPayload.correctImageItem = selectedImage;
-                roundPayload.wordOptions = shuffleArray([selectedImage.word, ...incorrectWordOptions]);
+                roundPayload.correctImageItem = correctImage;
+                roundPayload.wordOptions = shuffleArray([correctImage.word, ...incorrectWordOptions]);
             }
         }
     }
@@ -458,12 +413,14 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
       payload: roundPayload
     });
 
-  }, [availableLetters, letterGroups]); // Dependencies: letterGroups added
+  }, [availableLetters, canDoRaceToPicture, letterGroups, raceCandidateLetters]); // Dependencies: letterGroups added
 
   // --- Effects ---
   useEffect(() => {
     const storedSessionScore = getSessionScore();
+    previousScoreRef.current = storedSessionScore;
     dispatch({ type: 'SET_SCORE', payload: storedSessionScore });
+    hasLoadedStoredScore.current = true;
 
     if (availableLetters.length > 0) {
       startNewRound();
@@ -502,8 +459,28 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   }, [letterGroups]);
 
   useEffect(() => {
-    saveSessionScore(state.score);
+    if (!hasLoadedStoredScore.current) {
+      return;
+    }
+
+    const scoreIncreased = state.score > previousScoreRef.current;
+    saveSessionScore(state.score, scoreIncreased ? Date.now() : undefined);
+    previousScoreRef.current = state.score;
   }, [state.score]);
+
+  useEffect(() => {
+    if (state.isCorrect === null || currentQuestionId <= 0) {
+      return;
+    }
+
+    if (handledOutcomeQuestionIdRef.current === currentQuestionId) {
+      return;
+    }
+
+    handledOutcomeQuestionIdRef.current = currentQuestionId;
+
+    setComboCount(previousCombo => (state.isCorrect ? previousCombo + 1 : 0));
+  }, [currentQuestionId, state.isCorrect]);
 
   useEffect(() => {
     let timer: number | undefined;
@@ -629,6 +606,41 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     onSelectionSave();
   };
 
+  const handleRaceAttempt = (item: GermanLetterItem, isCorrect: boolean) => {
+    if (
+      isRecordingPaused ||
+      state.exerciseType !== ExerciseType.RACE_TO_PICTURE ||
+      !state.currentLetter ||
+      currentQuestionId <= 0
+    ) {
+      return;
+    }
+
+    const questionId = currentQuestionId + caseMatchAttemptCounter.current;
+    caseMatchAttemptCounter.current += 1;
+
+    const record: SelectionRecord = {
+      timestamp: Date.now(),
+      questionId,
+      targetLetter: state.currentLetter,
+      targetWord: isCorrect ? item.word : undefined,
+      selectedAnswer: item.word,
+      isCorrect,
+      exerciseType: state.exerciseType,
+    };
+
+    saveSelection(record);
+    onSelectionSave();
+  };
+
+  const handleActivateRace = useCallback(() => {
+    if (comboCount < RACE_COMBO_UNLOCK || state.exerciseType === ExerciseType.RACE_TO_PICTURE || !canDoRaceToPicture) {
+      return;
+    }
+
+    startNewRound(ExerciseType.RACE_TO_PICTURE);
+  }, [canDoRaceToPicture, comboCount, startNewRound, state.exerciseType]);
+
   // --- Rendering ---
   if (state.error) {
     return <div className="letter-match-container error"><p>{state.error}</p></div>;
@@ -653,7 +665,14 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         <ConfettiManager score={state.score} />
 
         <div className="letter-match-container">
-            <ScoreProgressBar score={state.score} />
+            <div className="score-row">
+                <ScoreProgressBar score={state.score} />
+                <ComboIndicator
+                    comboCount={comboCount}
+                    unlocked={comboCount >= RACE_COMBO_UNLOCK && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && canDoRaceToPicture}
+                    onActivateRace={handleActivateRace}
+                />
+            </div>
             <ScoreDisplay score={state.score} ref={scoreDisplayRef} />
             <div className="game-content">
                 <GameArea
@@ -662,16 +681,17 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     onLetterSelect={handleLetterSelect}
                     onWordSelect={handleWordSelect}
                     onCaseMatchAttempt={handleCaseMatchAttempt}
+                    onRaceAttempt={handleRaceAttempt}
                     dispatch={dispatch}
                 />
                 <div className="feedback-container">
                     {/* Only show text feedback for non-word-scramble types */}
-                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && state.exerciseType !== ExerciseType.CASE_MATCH && (
+                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && state.exerciseType !== ExerciseType.CASE_MATCH && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && (
                         <FeedbackDisplay isCorrect={state.isCorrect} />
                     )}
                 </div>
                 <div className="game-controls-container">
-                    <NextRoundButton onClick={startNewRound} exerciseType={state.exerciseType} />
+                    <NextRoundButton onClick={() => startNewRound()} exerciseType={state.exerciseType} />
                     <button
                         onClick={handleStartNewSession}
                         className={`new-letter-button${isConfirmingNewSession ? ' confirm-button' : ''}`}
