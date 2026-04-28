@@ -278,7 +278,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
         case 'RESET_FEEDBACK':
             // Ensure this also resets word scramble state if needed when moving to next round
-            return { ...state, isCorrect: null, selectedLetter: null, selectedOption: null };
+            return { ...state, isCorrect: null, selectedLetter: null, selectedOption: null, selectedWord: null };
         default:
             return state;
     }

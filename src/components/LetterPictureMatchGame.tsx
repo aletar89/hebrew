@@ -105,8 +105,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
           [ExerciseType.DRAWING]: 7,
           [ExerciseType.LETTER_TO_PICTURE]: 10,
           [ExerciseType.PICTURE_TO_LETTER]: 10,
-          [ExerciseType.PICTURE_TO_WORD]: 0,
-          [ExerciseType.WORD_TO_PICTURE]: 0,
+          [ExerciseType.PICTURE_TO_WORD]: 10,
+          [ExerciseType.WORD_TO_PICTURE]: 10,
           [ExerciseType.WORD_SCRAMBLE]: 0,
           [ExerciseType.RACE_TO_PICTURE]: 0,
       };
