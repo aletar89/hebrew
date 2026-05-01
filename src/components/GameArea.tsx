@@ -44,6 +44,7 @@ import './WordScramble.css'; // Create this file for word scramble specific styl
 // Define canvas dimensions (adjust as needed, consider making responsive)
 const CANVAS_WIDTH = 300;
 const CANVAS_HEIGHT = 300;
+const WORD_LOCALE = 'de-DE';
 
 // Props for GameArea component
 interface GameAreaProps {
@@ -88,6 +89,8 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
     const [drawingEvaluation, setDrawingEvaluation] = useState<DrawingEvaluationResult | null>(null);
     const [attemptSubmitted, setAttemptSubmitted] = useState<boolean>(false);
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+
+    const toDisplayWord = useCallback((word: string) => word.toLocaleUpperCase(WORD_LOCALE), []);
 
     // Setup sensors for dnd-kit (important for touch)
     const sensors = useSensors(
@@ -507,7 +510,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         return (
             <>
                 <div className="current-word">
-                    <h2>{currentWord}</h2>
+                    <h2>{currentWord ? toDisplayWord(currentWord) : currentWord}</h2>
                 </div>
                 <div className="options">
                     {imageOptions.map((option, index) => (
@@ -607,6 +610,38 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                         className="target-image"
                         onError={(e) => handleImageError(e, correctImageItem.letter)}
                     />
+                    <button
+                        type="button"
+                        className="audio-button"
+                        aria-label={`Wort anhören: ${correctImageItem.word}`}
+                        onClick={() => playWordAudio(correctImageItem.word)}
+                    >
+                        <svg
+                            aria-hidden="true"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                d="M4 9v6h4l5 4V5L8 9H4Z"
+                                fill="currentColor"
+                            />
+                            <path
+                                d="M15 9.5c1 .75 1.5 1.75 1.5 2.5s-.5 1.75-1.5 2.5"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                            />
+                            <path
+                                d="M17.5 7.5c1.5 1.25 2.25 2.75 2.25 4.5s-.75 3.25-2.25 4.5"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                            />
+                        </svg>
+                    </button>
                 </div>
                 <div className="word-options">
                     {wordOptions.map((word, index) => (
@@ -618,10 +653,10 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                                 isRoundCorrect === false && word === selectedWord ? ' incorrect-option' : ''
                                 }${
                                 isRoundCorrect === false && word === correctImageItem?.word ? ' highlight-correct' : ''
-                                }`}
+                            }`}
                             onClick={() => onWordSelect(word)}
                         >
-                            <span className="word-text">{word}</span>
+                            <span className="word-text">{toDisplayWord(word)}</span>
                         </div>
                     ))}
                 </div>
