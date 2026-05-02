@@ -23,6 +23,7 @@ export const DraggableLetter: React.FC<DraggableLetterProps> = ({ id, letter, /*
         id: id,
         data: data, // Pass data through
     });
+    const displayLetter = letter.toLocaleUpperCase('de-DE');
 
     const style = transform ? {
         transform: CSS.Translate.toString(transform),
@@ -44,9 +45,9 @@ export const DraggableLetter: React.FC<DraggableLetterProps> = ({ id, letter, /*
             {...listeners} // Attach pointer/touch listeners
             {...attributes} // Attach accessibility attributes
             className={className}
-            aria-label={`Draggable letter ${letter}`}
+            aria-label={`Draggable letter ${displayLetter}`}
         >
-            {letter}
+            {displayLetter}
         </div>
     );
 }; 
