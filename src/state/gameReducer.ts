@@ -14,9 +14,12 @@ export enum ExerciseType {
     CASE_MATCH = 'case-match'
 }
 
+export type MatchingLetterCase = 'upper' | 'lower';
+
 export interface GameState {
     exerciseType: ExerciseType;
     currentLetter: string | null;
+    letterDisplayCase: MatchingLetterCase | null;
     currentWord: string | null;
     correctImageItem: GermanLetterItem | null;
     imageOptions: GermanLetterItem[]; // Options for LETTER_TO_PICTURE and WORD_TO_PICTURE
@@ -61,6 +64,7 @@ export type GameAction =
 export const initialState: GameState = {
     exerciseType: ExerciseType.LETTER_TO_PICTURE,
     currentLetter: null,
+    letterDisplayCase: null,
     currentWord: null,
     correctImageItem: null,
     imageOptions: [],
@@ -104,6 +108,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 ...state,
                 exerciseType: action.payload.exerciseType ?? state.exerciseType,
                 currentLetter: (isDrawing || isDotTracing || isRaceToPicture) ? action.payload.currentLetter ?? null : null,
+                letterDisplayCase: (
+                    action.payload.exerciseType === ExerciseType.LETTER_TO_PICTURE ||
+                    action.payload.exerciseType === ExerciseType.PICTURE_TO_LETTER
+                ) ? action.payload.letterDisplayCase ?? 'upper' : null,
                 currentWord: isWordToPicture ? action.payload.currentWord ?? null : null,
                 correctImageItem: (isDrawing || isWordScramble || isWordToPicture || isPictureToWord) ? (action.payload.correctImageItem ?? null) : (action.payload.correctImageItem ?? null),
                 imageOptions: (isDrawing || isDotTracing || isWordScramble || isRaceToPicture) ? [] : (action.payload.imageOptions ?? []),

@@ -62,6 +62,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
     const {
         exerciseType,
         currentLetter,
+        letterDisplayCase,
         currentWord,
         correctImageItem,
         imageOptions,
@@ -91,6 +92,11 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
     const toDisplayWord = useCallback((word: string) => word.toLocaleUpperCase(WORD_LOCALE), []);
+    const toDisplayLetter = useCallback((letter: string) => (
+        letterDisplayCase === 'lower'
+            ? letter.toLocaleLowerCase(WORD_LOCALE)
+            : letter.toLocaleUpperCase(WORD_LOCALE)
+    ), [letterDisplayCase]);
 
     // Setup sensors for dnd-kit (important for touch)
     const sensors = useSensors(
@@ -514,7 +520,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         return (
             <>
                 <div className="current-letter">
-                    <h2>{currentLetter}</h2>
+                    <h2>{currentLetter ? toDisplayLetter(currentLetter) : currentLetter}</h2>
                 </div>
                 <div className="options">
                     {imageOptions.map((option, index) => (
@@ -543,7 +549,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
     } else if (exerciseType === ExerciseType.WORD_TO_PICTURE) {
         return (
             <>
-                <div className="current-word">
+                <div className="current-word current-word--responsive">
                     <h2>{currentWord ? toDisplayWord(currentWord) : currentWord}</h2>
                 </div>
                 <div className="options">
@@ -627,7 +633,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                                 }`}
                             onClick={() => onLetterSelect(letter)}
                         >
-                            <span className="letter-text">{letter}</span>
+                            <span className="letter-text">{toDisplayLetter(letter)}</span>
                         </div>
                     ))}
                 </div>

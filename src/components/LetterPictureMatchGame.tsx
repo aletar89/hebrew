@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useCallback, useState, useRef } from 'react';
 import { GermanLetterItem } from '../utils/imageUtils'; // Adjust path
 import { getRandomElement, shuffleArray } from '../utils/arrayUtils'; // Adjust path
-import { GameState, gameReducer, initialState, ExerciseType } from '../state/gameReducer'; // Adjust path
+import { GameState, gameReducer, initialState, ExerciseType, MatchingLetterCase } from '../state/gameReducer'; // Adjust path
 import { ScoreDisplay } from './ScoreDisplay';
 import { ScoreProgressBar } from './ScoreProgressBar';
 import { FeedbackDisplay } from './FeedbackDisplay';
@@ -25,6 +25,16 @@ import { preloadWordAudio } from '../utils/audioUtils';
 
 // --- Game Logic Component ---
 const RACE_COMBO_UNLOCK = 9;
+
+const getRandomMatchingLetterCase = (): MatchingLetterCase => (
+  Math.random() < 0.5 ? 'upper' : 'lower'
+);
+
+const getConflictingLetter = (letter: string): string | null => {
+  if (letter === 'I') return 'L';
+  if (letter === 'L') return 'I';
+  return null;
+};
 
 export interface LetterPictureMatchProps {
   letterGroups: Record<string, GermanLetterItem[]>;
@@ -283,6 +293,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
             }
 
             roundPayload.currentLetter = selectedLetter;
+            roundPayload.letterDisplayCase = getRandomMatchingLetterCase();
             const possibleImages = letterGroups[selectedLetter].filter(item =>
                 newExerciseType === ExerciseType.WORD_SCRAMBLE
                     ? (item.word && item.word.length > 1 && item.word.length <= 5)
@@ -325,7 +336,12 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
                 roundPayload.imageOptions = shuffleArray([correctImage, ...incorrectOptions]);
             } else if (newExerciseType === ExerciseType.PICTURE_TO_LETTER) {
-                const otherLetters = availableLetters.filter(letter => letter !== selectedLetter);
+                roundPayload.letterDisplayCase = getRandomMatchingLetterCase();
+                const forbiddenLetter = getConflictingLetter(selectedLetter);
+                const otherLetters = availableLetters.filter(letter =>
+                    letter !== selectedLetter &&
+                    letter !== forbiddenLetter
+                );
                 const shuffledOtherLetters = shuffleArray(otherLetters);
                 const finalIncorrectLetters = shuffledOtherLetters.slice(0, Math.min(2, shuffledOtherLetters.length));
                 roundPayload.letterOptions = shuffleArray([selectedLetter, ...finalIncorrectLetters]);
