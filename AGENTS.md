@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 - `src/main.tsx` mounts the React 19/Vite app and pulls global styles from `src/index.css` and `src/App.css`.
-- `src/components/` holds UI pieces for the reading games (drag-and-drop letters, canvases, stats, feedback); each component keeps a matching `.css` file for scoped styles.
+- `src/components/` holds UI pieces for the reading games (drag-and-drop letters, canvases, stats, feedback); each component keeps a matching `.css` file for scoped styles. `src/components/LetterPictureMatchGame.tsx` also owns the round-selection weights that control how often each game mode appears.
 - `src/utils/` contains shared logic (image detection, drawing helpers, spaced repetition, storage) with tests like `src/utils/imageUtils.test.ts`.
 - `src/state/gameReducer.ts` keeps reducer/state helpers.
 - `public/images/` is the content directory for German letter images (e.g., `Apfel.png`, `Banane.jpg`); other static files live in `public/`. Build artifacts output to `dist/`.

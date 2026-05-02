@@ -100,14 +100,15 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     if (!forcedExerciseType) {
       const rand = Math.random();
       const exerciseWeights = {
-          [ExerciseType.CASE_MATCH]: 10,
-          [ExerciseType.DOT_TRACING]: 7,
-          [ExerciseType.DRAWING]: 7,
-          [ExerciseType.LETTER_TO_PICTURE]: 10,
-          [ExerciseType.PICTURE_TO_LETTER]: 10,
-          [ExerciseType.PICTURE_TO_WORD]: 10,
-          [ExerciseType.WORD_TO_PICTURE]: 10,
-          [ExerciseType.WORD_SCRAMBLE]: 0,
+          // Favor word-based rounds more often than the other exercise types.
+          [ExerciseType.CASE_MATCH]: 8,
+          [ExerciseType.DOT_TRACING]: 5,
+          [ExerciseType.DRAWING]: 5,
+          [ExerciseType.LETTER_TO_PICTURE]: 8,
+          [ExerciseType.PICTURE_TO_LETTER]: 8,
+          [ExerciseType.PICTURE_TO_WORD]: 14,
+          [ExerciseType.WORD_TO_PICTURE]: 14,
+          [ExerciseType.WORD_SCRAMBLE]: 12,
           [ExerciseType.RACE_TO_PICTURE]: 0,
       };
       const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
