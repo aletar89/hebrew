@@ -508,7 +508,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         // Keep retry-based exercises on screen after failure so the child can inspect and correct mistakes.
         (state.isCorrect === false &&
          state.exerciseType !== ExerciseType.WORD_SCRAMBLE &&
-         state.exerciseType !== ExerciseType.DRAWING);
+         state.exerciseType !== ExerciseType.DRAWING &&
+         state.exerciseType !== ExerciseType.RACE_TO_PICTURE);
 
     if (shouldAdvance) {
       console.log(`Advancing round automatically (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
@@ -699,6 +700,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     onWordSelect={handleWordSelect}
                     onCaseMatchAttempt={handleCaseMatchAttempt}
                     onRaceAttempt={handleRaceAttempt}
+                    onContinueRace={() => startNewRound()}
                     dispatch={dispatch}
                 />
                 <div className="feedback-container">

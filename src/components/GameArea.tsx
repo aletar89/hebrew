@@ -54,11 +54,12 @@ interface GameAreaProps {
     onWordSelect: (word: string) => void;
     onCaseMatchAttempt: (uppercase: string, lowercase: string, isCorrect: boolean) => void;
     onRaceAttempt: (item: GermanLetterItem, isCorrect: boolean) => void;
+    onContinueRace: () => void;
     dispatch: React.Dispatch<GameAction>;
 }
 
 // Displays the core interactive area (prompt and options)
-export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, onCaseMatchAttempt, onRaceAttempt, dispatch }) => {
+export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, onCaseMatchAttempt, onRaceAttempt, onContinueRace, dispatch }) => {
     const {
         exerciseType,
         currentLetter,
@@ -314,6 +315,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                 disabled={isRoundCorrect !== null}
                 onAttempt={onRaceAttempt}
                 onFinish={(isCorrect) => dispatch({ type: 'FINISH_RACE', payload: { isCorrect } })}
+                onContinue={onContinueRace}
             />
         );
     }

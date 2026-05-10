@@ -11,6 +11,7 @@ interface RaceToPictureGameProps {
   disabled?: boolean;
   onAttempt: (item: GermanLetterItem, isCorrect: boolean) => void;
   onFinish: (isCorrect: boolean) => void;
+  onContinue: () => void;
 }
 
 interface RaceLaneItem {
@@ -94,6 +95,7 @@ export function RaceToPictureGame({
   disabled = false,
   onAttempt,
   onFinish,
+  onContinue,
 }: RaceToPictureGameProps) {
   const [carPosition, setCarPosition] = useState(1);
   const [wave, setWave] = useState<RaceLaneItem[]>([]);
@@ -102,6 +104,7 @@ export function RaceToPictureGame({
   const [statusMessage, setStatusMessage] = useState('Tap the car to start.');
   const [hasStarted, setHasStarted] = useState(false);
   const [collisionFlash, setCollisionFlash] = useState<{ lane: number; isCorrect: boolean } | null>(null);
+  const [topSpeedReached, setTopSpeedReached] = useState<number | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const isDraggingRef = useRef(false);
   const waveResolvedRef = useRef(false);
@@ -171,6 +174,7 @@ export function RaceToPictureGame({
     setHasStarted(false);
     waveResolvedRef.current = false;
     setCollisionFlash(null);
+    setTopSpeedReached(null);
     setStatusMessage('Tap the car to start.');
     previousCorrectWordRef.current = null;
     previousCorrectLaneRef.current = null;
@@ -219,7 +223,7 @@ export function RaceToPictureGame({
   }, [disabled, hasPlayableWave, hasStarted]);
 
   useEffect(() => {
-    if (disabled || !hasPlayableWave || !hasStarted || waveRef.current.length === 0) {
+    if (disabled || !hasPlayableWave || !hasStarted || waveRef.current.length === 0 || topSpeedReached !== null) {
       return;
     }
 
@@ -242,14 +246,11 @@ export function RaceToPictureGame({
         onAttempt(chosen.item, chosen.isCorrect);
 
         if (!chosen.isCorrect) {
+          const topSpeed = BASE_SPEED + collectedRef.current * SPEED_STEP;
+          setTopSpeedReached(topSpeed);
+          setHasStarted(false);
           setStatusMessage(`Oops! ${chosen.item.word} does not start with ${targetLetter}.`);
-          if (collectedRef.current > 0) {
-            window.setTimeout(() => onFinish(false), 0);
-            return;
-          }
-          window.setTimeout(() => {
-            spawnWave();
-          }, 180);
+          window.setTimeout(() => onFinish(false), 0);
           return;
         }
 
@@ -271,7 +272,7 @@ export function RaceToPictureGame({
     }, TICK_MS);
 
     return () => window.clearInterval(interval);
-  }, [disabled, hasPlayableWave, hasStarted, onAttempt, onFinish, spawnWave, targetCount, targetLetter]);
+  }, [disabled, hasPlayableWave, hasStarted, onAttempt, onFinish, spawnWave, targetCount, targetLetter, topSpeedReached]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (disabled || !hasStarted) {
@@ -415,6 +416,20 @@ export function RaceToPictureGame({
       <div className="race-status" aria-live="polite">
         {statusMessage}
       </div>
+      {topSpeedReached !== null && (
+        <div className="race-loss-summary">
+          <p className="race-loss-summary-speed">
+            Top speed reached: <strong>{topSpeedReached.toFixed(2)}</strong>
+          </p>
+          <button
+            type="button"
+            className="new-letter-button race-continue-button"
+            onClick={onContinue}
+          >
+            Continue
+          </button>
+        </div>
+      )}
     </div>
   );
 }

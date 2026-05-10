@@ -214,6 +214,24 @@
   color: #315b7c;
 }
 
+.race-loss-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px 8px;
+  text-align: center;
+}
+
+.race-loss-summary-speed {
+  color: #23445f;
+  font-weight: 700;
+}
+
+.race-continue-button {
+  min-width: 180px;
+}
+
 @keyframes race-car-ready {
   0% {
     transform: translateY(0);
