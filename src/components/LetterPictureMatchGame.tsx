@@ -114,11 +114,11 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
           [ExerciseType.CASE_MATCH]: 8,
           [ExerciseType.DOT_TRACING]: 5,
           [ExerciseType.DRAWING]: 5,
-          [ExerciseType.LETTER_TO_PICTURE]: 8,
-          [ExerciseType.PICTURE_TO_LETTER]: 8,
-          [ExerciseType.PICTURE_TO_WORD]: 14,
+          [ExerciseType.LETTER_TO_PICTURE]: 5,
+          [ExerciseType.PICTURE_TO_LETTER]: 5,
+          [ExerciseType.PICTURE_TO_WORD]: 8,
           [ExerciseType.WORD_TO_PICTURE]: 14,
-          [ExerciseType.WORD_SCRAMBLE]: 12,
+          [ExerciseType.WORD_SCRAMBLE]: 15,
           [ExerciseType.RACE_TO_PICTURE]: 0,
       };
       const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
