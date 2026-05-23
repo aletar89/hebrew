@@ -1,0 +1,108 @@
+.chunk-sound-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+}
+
+.chunk-prompt {
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chunk-written-prompt {
+  min-width: 150px;
+  padding: 14px 22px;
+  border: 3px solid #2563eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.chunk-main-audio-button,
+.chunk-sound-option {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.chunk-main-audio-button {
+  width: 88px;
+  height: 88px;
+}
+
+.chunk-main-audio-button svg {
+  width: 42px;
+  height: 42px;
+}
+
+.chunk-sound-option {
+  width: 72px;
+  height: 72px;
+}
+
+.chunk-text-options,
+.chunk-sound-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 14px;
+  width: min(100%, 360px);
+}
+
+.chunk-text-option {
+  min-height: 72px;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  cursor: pointer;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.chunk-main-audio-button:hover,
+.chunk-main-audio-button:focus-visible,
+.chunk-sound-option:hover,
+.chunk-sound-option:focus-visible,
+.chunk-text-option:hover,
+.chunk-text-option:focus-visible {
+  transform: scale(1.04);
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+.chunk-text-option.correct-option,
+.chunk-sound-option.correct-option {
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.chunk-text-option.incorrect-option,
+.chunk-sound-option.incorrect-option {
+  border-color: #dc2626;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.chunk-main-audio-button:disabled,
+.chunk-sound-option:disabled,
+.chunk-text-option:disabled {
+  cursor: default;
+}

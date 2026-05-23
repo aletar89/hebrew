@@ -20,6 +20,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'; // Keep coordin
 // --- End dnd-kit imports ---
 
 import { GameState, ExerciseType, GameAction } from '../state/gameReducer';
+import { ReadingChunk } from '../data/readingChunks';
 import { GermanLetterItem } from '../utils/imageUtils';
 import { evaluateDrawing, DrawingEvaluationResult } from '../utils/drawingUtils';
 import { DrawingCanvas } from './DrawingCanvas';
@@ -30,6 +31,7 @@ import { SubmitDrawingButton } from './SubmitDrawingButton';
 import { DrawingFeedbackCanvas } from './DrawingFeedbackCanvas';
 import { ClearDrawingButton } from './ClearDrawingButton.tsx';
 import { LetterCaseMatch } from './LetterCaseMatch';
+import { ChunkSoundChoice } from './ChunkSoundChoice';
 import { RaceToPictureGame } from './RaceToPictureGame';
 import { letterDotPatterns } from '../utils/letterDotPatterns';
 
@@ -53,13 +55,14 @@ interface GameAreaProps {
     onLetterSelect: (letter: string) => void;
     onWordSelect: (word: string) => void;
     onCaseMatchAttempt: (uppercase: string, lowercase: string, isCorrect: boolean) => void;
+    onChunkSelect: (chunk: ReadingChunk) => void;
     onRaceAttempt: (item: GermanLetterItem, isCorrect: boolean) => void;
     onContinueRace: () => void;
     dispatch: React.Dispatch<GameAction>;
 }
 
 // Displays the core interactive area (prompt and options)
-export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, onCaseMatchAttempt, onRaceAttempt, onContinueRace, dispatch }) => {
+export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, onLetterSelect, onWordSelect, onCaseMatchAttempt, onChunkSelect, onRaceAttempt, onContinueRace, dispatch }) => {
     const {
         exerciseType,
         currentLetter,
@@ -74,12 +77,15 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         wordOptions,
         uppercaseLetters,
         lowercaseLetters,
+        currentChunk,
+        chunkOptions,
         targetWord,          // <- New state
         shuffledLetters,     // <- New state
         currentArrangement,  // <- New state
         selectedOption,
         selectedLetter,
         selectedWord,
+        selectedChunkId,
         isCorrect: isRoundCorrect
     } = gameState;
 
@@ -378,6 +384,25 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                 disabled={isRoundCorrect === true}
                 onAttempt={onCaseMatchAttempt}
                 onComplete={() => dispatch({ type: 'COMPLETE_CASE_MATCH' })}
+            />
+        );
+    }
+    else if (
+        exerciseType === ExerciseType.CHUNK_SOUND_TO_TEXT ||
+        exerciseType === ExerciseType.CHUNK_TEXT_TO_SOUND
+    ) {
+        if (!currentChunk || chunkOptions.length === 0) {
+            return <div className="loading">Loading sound challenge...</div>;
+        }
+
+        return (
+            <ChunkSoundChoice
+                mode={exerciseType === ExerciseType.CHUNK_SOUND_TO_TEXT ? 'sound-to-text' : 'text-to-sound'}
+                targetChunk={currentChunk}
+                options={chunkOptions}
+                selectedChunkId={selectedChunkId}
+                disabled={isRoundCorrect !== null}
+                onSelect={onChunkSelect}
             />
         );
     }

@@ -2,6 +2,7 @@ import { useEffect, useReducer, useCallback, useState, useRef } from 'react';
 import { GermanLetterItem } from '../utils/imageUtils'; // Adjust path
 import { getRandomElement, shuffleArray } from '../utils/arrayUtils'; // Adjust path
 import { GameState, gameReducer, initialState, ExerciseType, MatchingLetterCase } from '../state/gameReducer'; // Adjust path
+import { ReadingChunk, readingChunks } from '../data/readingChunks';
 import { ScoreDisplay } from './ScoreDisplay';
 import { ScoreProgressBar } from './ScoreProgressBar';
 import { FeedbackDisplay } from './FeedbackDisplay';
@@ -17,14 +18,15 @@ import {
   resetSessionScore,
   saveSessionScore,
 } from '../utils/storageUtils'; // Adjust path
-import { calculateLetterWeights, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
+import { calculateItemWeights, calculateLetterWeights, getWeightedRandomItem, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
 import { ConfettiManager } from './ConfettiManager'; // Import the new manager
 import { letterDotPatterns } from '../utils/letterDotPatterns';
 import { enqueueIdleTasks, preloadImage } from '../utils/preloadUtils';
-import { preloadWordAudio } from '../utils/audioUtils';
+import { preloadChunkAudio, preloadWordAudio } from '../utils/audioUtils';
 
 // --- Game Logic Component ---
 const RACE_COMBO_UNLOCK = 9;
+const CHUNK_OPTION_COUNT = 4;
 
 const getRandomMatchingLetterCase = (): MatchingLetterCase => (
   Math.random() < 0.5 ? 'upper' : 'lower'
@@ -34,6 +36,32 @@ const getConflictingLetter = (letter: string): string | null => {
   if (letter === 'I') return 'L';
   if (letter === 'L') return 'I';
   return null;
+};
+
+const getUnlockedChunkLevels = (score: number): number[] => {
+  if (score >= 12) return [1, 2];
+  return [1];
+};
+
+const buildChunkOptions = (targetChunk: ReadingChunk, candidates: ReadingChunk[]): ReadingChunk[] => {
+  const sameGroup = shuffleArray(candidates.filter(chunk =>
+    chunk.id !== targetChunk.id && chunk.confusionGroup === targetChunk.confusionGroup
+  ));
+  const sameLevel = shuffleArray(candidates.filter(chunk =>
+    chunk.id !== targetChunk.id &&
+    chunk.confusionGroup !== targetChunk.confusionGroup &&
+    chunk.level === targetChunk.level
+  ));
+  const fallback = shuffleArray(candidates.filter(chunk =>
+    chunk.id !== targetChunk.id &&
+    chunk.confusionGroup !== targetChunk.confusionGroup &&
+    chunk.level !== targetChunk.level
+  ));
+
+  return shuffleArray([
+    targetChunk,
+    ...[...sameGroup, ...sameLevel, ...fallback].slice(0, CHUNK_OPTION_COUNT - 1),
+  ]);
 };
 
 export interface LetterPictureMatchProps {
@@ -120,6 +148,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
           [ExerciseType.WORD_TO_PICTURE]: 14,
           [ExerciseType.WORD_SCRAMBLE]: 15,
           [ExerciseType.RACE_TO_PICTURE]: 0,
+          [ExerciseType.CHUNK_SOUND_TO_TEXT]: 7,
+          [ExerciseType.CHUNK_TEXT_TO_SOUND]: 7,
       };
       const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
       let cumulativeWeight = 0;
@@ -155,6 +185,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         letterGroups[letter] && letterGroups[letter].length >= 3
     );
     const canDoCaseMatch = availableLetters.length >= 4;
+    const unlockedChunkLevels = getUnlockedChunkLevels(state.score);
+    const availableChunks = readingChunks.filter(chunk => unlockedChunkLevels.includes(chunk.level));
+    const canDoChunkSoundChoice = availableChunks.length >= CHUNK_OPTION_COUNT;
     const dotTracingLetters = availableLetters.filter(letter => letterDotPatterns[letter]);
     const canDoDotTracing = dotTracingLetters.length > 0;
     if (newExerciseType === ExerciseType.CASE_MATCH && !canDoCaseMatch) {
@@ -177,6 +210,15 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         newExerciseType = ExerciseType.DRAWING;
     } else if (newExerciseType === ExerciseType.RACE_TO_PICTURE && !canDoRaceToPicture) {
         console.warn("Cannot do Race to Picture, falling back...");
+        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
+    } else if (
+      (
+        newExerciseType === ExerciseType.CHUNK_SOUND_TO_TEXT ||
+        newExerciseType === ExerciseType.CHUNK_TEXT_TO_SOUND
+      ) &&
+      !canDoChunkSoundChoice
+    ) {
+        console.warn("Cannot do Chunk Sound Choice, falling back...");
         newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
     }
 
@@ -238,6 +280,32 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         roundPayload.raceCorrectItems = correctRaceItems;
         roundPayload.raceDistractorItems = distractorPool;
         roundPayload.raceTargetCount = 50;
+    } else if (
+      newExerciseType === ExerciseType.CHUNK_SOUND_TO_TEXT ||
+      newExerciseType === ExerciseType.CHUNK_TEXT_TO_SOUND
+    ) {
+        const candidateChunkIds = availableChunks.map(chunk => chunk.id);
+        const weightedChunks = calculateItemWeights(
+          getSelectionHistory(),
+          candidateChunkIds,
+          record => record.targetChunk
+        );
+        const selectedChunkId = getWeightedRandomItem(weightedChunks) ?? getRandomElement(candidateChunkIds);
+        const selectedChunk = availableChunks.find(chunk => chunk.id === selectedChunkId);
+
+        if (!selectedChunk) {
+            dispatch({ type: 'SET_ERROR', payload: "Failed to select a reading chunk for sound practice." });
+            return;
+        }
+
+        const chunkOptions = buildChunkOptions(selectedChunk, availableChunks);
+        if (chunkOptions.length < CHUNK_OPTION_COUNT) {
+            dispatch({ type: 'SET_ERROR', payload: "Need more reading chunks to start sound practice." });
+            return;
+        }
+
+        roundPayload.currentChunk = selectedChunk;
+        roundPayload.chunkOptions = chunkOptions;
     } else {
         let candidateLetters: string[];
         if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
@@ -430,7 +498,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
       payload: roundPayload
     });
 
-  }, [availableLetters, canDoRaceToPicture, letterGroups, raceCandidateLetters]); // Dependencies: letterGroups added
+  }, [availableLetters, canDoRaceToPicture, letterGroups, raceCandidateLetters, state.score]); // Dependencies: letterGroups added
 
   // --- Effects ---
   useEffect(() => {
@@ -455,6 +523,15 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     preloadImage(state.correctImageItem.imageUrl);
     preloadWordAudio(state.correctImageItem.word);
   }, [state.correctImageItem]);
+
+  useEffect(() => {
+    if (!state.currentChunk) {
+      return;
+    }
+
+    preloadChunkAudio(state.currentChunk.audioKey);
+    state.chunkOptions.forEach(chunk => preloadChunkAudio(chunk.audioKey));
+  }, [state.currentChunk, state.chunkOptions]);
 
   useEffect(() => {
     if (hasQueuedIdlePreload.current) {
@@ -509,7 +586,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         (state.isCorrect === false &&
          state.exerciseType !== ExerciseType.WORD_SCRAMBLE &&
          state.exerciseType !== ExerciseType.DRAWING &&
-         state.exerciseType !== ExerciseType.RACE_TO_PICTURE);
+         state.exerciseType !== ExerciseType.RACE_TO_PICTURE &&
+         state.exerciseType !== ExerciseType.CHUNK_SOUND_TO_TEXT &&
+         state.exerciseType !== ExerciseType.CHUNK_TEXT_TO_SOUND);
 
     if (shouldAdvance) {
       console.log(`Advancing round automatically (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
@@ -624,6 +703,41 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     onSelectionSave();
   };
 
+  const handleChunkSelect = (selectedChunk: ReadingChunk) => {
+    if (
+      state.isCorrect !== null ||
+      !state.currentChunk ||
+      (
+        state.exerciseType !== ExerciseType.CHUNK_SOUND_TO_TEXT &&
+        state.exerciseType !== ExerciseType.CHUNK_TEXT_TO_SOUND
+      )
+    ) {
+      return;
+    }
+
+    const isSelectionCorrect = selectedChunk.id === state.currentChunk.id;
+
+    if (!isRecordingPaused && currentQuestionId > 0) {
+        const record: SelectionRecord = {
+            timestamp: Date.now(),
+            questionId: currentQuestionId,
+            targetLetter: state.currentChunk.id,
+            targetChunk: state.currentChunk.id,
+            selectedAnswer: selectedChunk.id,
+            isCorrect: isSelectionCorrect,
+            exerciseType: state.exerciseType,
+        };
+
+        saveSelection(record);
+        onSelectionSave();
+    }
+
+    dispatch({
+      type: 'SELECT_CHUNK',
+      payload: { selectedChunkId: selectedChunk.id, isCorrect: isSelectionCorrect },
+    });
+  };
+
   const handleRaceAttempt = (item: GermanLetterItem, isCorrect: boolean) => {
     if (
       isRecordingPaused ||
@@ -699,6 +813,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     onLetterSelect={handleLetterSelect}
                     onWordSelect={handleWordSelect}
                     onCaseMatchAttempt={handleCaseMatchAttempt}
+                    onChunkSelect={handleChunkSelect}
                     onRaceAttempt={handleRaceAttempt}
                     onContinueRace={() => startNewRound()}
                     dispatch={dispatch}

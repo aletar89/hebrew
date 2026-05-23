@@ -4,9 +4,10 @@ const audioCache = new Map<string, HTMLAudioElement>();
 const audioExtensions = ['wav', 'mp3'];
 
 const getAudioSources = (word: string) => audioExtensions.map(ext => `/audio/${word}.${ext}`);
+const getChunkAudioSources = (chunkAudioKey: string) => audioExtensions.map(ext => `/audio/chunks/${chunkAudioKey}.${ext}`);
 
-export async function playWordAudio(word: string): Promise<void> {
-  for (const src of getAudioSources(word)) {
+async function playAudioSources(sources: string[], label: string): Promise<void> {
+  for (const src of sources) {
     let audio = audioCache.get(src);
 
     if (!audio) {
@@ -24,11 +25,25 @@ export async function playWordAudio(word: string): Promise<void> {
     }
   }
 
-  console.error(`No playable audio found for word "${word}".`);
+  console.error(`No playable audio found for "${label}".`);
+}
+
+export async function playWordAudio(word: string): Promise<void> {
+  await playAudioSources(getAudioSources(word), `word "${word}"`);
+}
+
+export async function playChunkAudio(chunkAudioKey: string): Promise<void> {
+  await playAudioSources(getChunkAudioSources(chunkAudioKey), `chunk "${chunkAudioKey}"`);
 }
 
 export function preloadWordAudio(word: string): void {
   for (const src of getAudioSources(word)) {
+    preloadAudio(src);
+  }
+}
+
+export function preloadChunkAudio(chunkAudioKey: string): void {
+  for (const src of getChunkAudioSources(chunkAudioKey)) {
     preloadAudio(src);
   }
 }

@@ -10,9 +10,19 @@ const envPath = path.join(rootDir, '.env');
 
 const imageDir = path.join(rootDir, 'public', 'images');
 const audioDir = path.join(rootDir, 'public', 'audio');
+const chunkAudioDir = path.join(audioDir, 'chunks');
+const readingChunksPath = path.join(rootDir, 'src', 'data', 'readingChunks.ts');
 const validExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif']);
 const audioExtensions = new Set(['.wav', '.mp3', '.ogg', '.webm']);
 const force = process.argv.includes('--force');
+const sourceArgIndex = process.argv.indexOf('--source');
+const source = sourceArgIndex >= 0 ? process.argv[sourceArgIndex + 1] : (process.argv.includes('--chunks') ? 'chunks' : 'images');
+const limitArgIndex = process.argv.indexOf('--limit');
+const limit = limitArgIndex >= 0 ? Number(process.argv[limitArgIndex + 1]) : undefined;
+const itemsArgIndex = process.argv.indexOf('--items');
+const requestedItems = itemsArgIndex >= 0
+  ? new Set(process.argv[itemsArgIndex + 1]?.split(',').map(item => item.trim()).filter(Boolean) ?? [])
+  : null;
 
 async function loadEnvFile(filePath) {
   try {
@@ -65,9 +75,9 @@ async function listImageWords() {
   return Array.from(words);
 }
 
-async function listAudioWords() {
+async function listAudioWords(directory = audioDir) {
   try {
-    const entries = await fs.readdir(audioDir, { withFileTypes: true });
+    const entries = await fs.readdir(directory, { withFileTypes: true });
     const words = new Set();
 
     for (const entry of entries) {
@@ -87,6 +97,20 @@ async function listAudioWords() {
     }
     throw error;
   }
+}
+
+async function listReadingChunks() {
+  const contents = await fs.readFile(readingChunksPath, 'utf8');
+  const chunkMatches = contents.matchAll(/\{([^}]*?)\}/gs);
+
+  return Array.from(chunkMatches).flatMap(([, body]) => {
+    const id = body.match(/\bid:\s*'([^']+)'/)?.[1];
+    const text = body.match(/\btext:\s*'([^']+)'/)?.[1];
+    const audioKey = body.match(/\baudioKey:\s*'([^']+)'/)?.[1];
+    const ttsText = body.match(/\bttsText:\s*'([^']+)'/)?.[1];
+
+    return id && text && audioKey ? [{ id, text, audioKey, ttsText }] : [];
+  });
 }
 
 function mimeTypeToExtension(mimeType) {
@@ -138,11 +162,14 @@ function pcmToWav(pcmBuffer, sampleRate = 24000, numChannels = 1) {
   return buffer;
 }
 
-async function synthesizeWord(word, { client, modelName, voiceName, targetMimeType, maxRetries, baseBackoffMs }) {
+async function synthesizeAudioItem(item, { client, modelName, voiceName, targetMimeType, maxRetries, baseBackoffMs, kind }) {
   let attempt = 0;
   let lastError;
 
-  const prompt = `Speak the word "${word}" in German, slowly and clearly, for a language learning app. Return only the audio for that single word.`;
+  const chunkTranscript = item.ttsText ?? `${item.text} ${item.text} ${item.text}`;
+  const prompt = kind === 'chunk'
+    ? chunkTranscript
+    : item.text;
 
   while (attempt <= maxRetries) {
     try {
@@ -169,7 +196,7 @@ async function synthesizeWord(word, { client, modelName, voiceName, targetMimeTy
       const audioPart = parts.find(part => part.inlineData?.data);
       if (!audioPart?.inlineData?.data) {
         console.error('Full response for debugging:', JSON.stringify(response, null, 2));
-        throw new Error(`No audio data received for "${word}".`);
+        throw new Error(`No audio data received for "${item.text}".`);
       }
 
       const { data, mimeType } = audioPart.inlineData;
@@ -194,14 +221,18 @@ async function synthesizeWord(word, { client, modelName, voiceName, targetMimeTy
         ? Math.max(0, Math.ceil(retryAfterSeconds * 1000))
         : Math.min(60000, baseBackoffMs * 2 ** attempt);
 
+      if (message.includes('400 Bad Request') || message.includes('INVALID_ARGUMENT')) {
+        throw error;
+      }
+
       if (attempt >= maxRetries) {
         throw error;
       }
 
       if (status429) {
-        console.warn(`Rate limit hit for "${word}". Pausing for ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries}).`);
+        console.warn(`Rate limit hit for "${item.text}". Pausing for ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries}).`);
       } else {
-        console.warn(`Error on "${word}", retrying in ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries}).`, error);
+        console.warn(`Error on "${item.text}", retrying in ${backoffMs}ms (attempt ${attempt + 1}/${maxRetries}).`, error);
       }
 
       await new Promise(res => setTimeout(res, backoffMs));
@@ -209,7 +240,7 @@ async function synthesizeWord(word, { client, modelName, voiceName, targetMimeTy
     }
   }
 
-  throw lastError ?? new Error(`Failed to synthesize "${word}"`);
+  throw lastError ?? new Error(`Failed to synthesize "${item.text}"`);
 }
 
 async function main() {
@@ -228,50 +259,70 @@ async function main() {
   }
 
   const client = new GoogleGenAI({ apiKey });
-  console.log(`Scanning images in ${imageDir}...`);
-  await fs.mkdir(audioDir, { recursive: true });
+  const isChunkSource = source === 'chunks';
+  const targetAudioDir = isChunkSource ? chunkAudioDir : audioDir;
+  console.log(isChunkSource ? `Scanning reading chunks in ${readingChunksPath}...` : `Scanning images in ${imageDir}...`);
+  await fs.mkdir(targetAudioDir, { recursive: true });
 
-  const words = await listImageWords();
-  if (words.length === 0) {
-    console.log('No images found to process.');
+  const items = isChunkSource
+    ? await listReadingChunks()
+    : (await listImageWords()).map(word => ({ id: word, text: word, audioKey: word }));
+
+  if (items.length === 0) {
+    console.log(isChunkSource ? 'No reading chunks found to process.' : 'No images found to process.');
     return;
   }
 
-  const audioWords = await listAudioWords();
+  const audioWords = await listAudioWords(targetAudioDir);
   const audioSet = new Set(audioWords);
-  const missingWords = words.filter(word => !audioSet.has(word));
+  const missingWords = items.filter(item => !audioSet.has(item.audioKey));
+  const filteredItems = requestedItems
+    ? items.filter(item => requestedItems.has(item.id) || requestedItems.has(item.text) || requestedItems.has(item.audioKey))
+    : items;
+  const itemsToGenerate = Number.isFinite(limit) && limit > 0
+    ? filteredItems.slice(0, limit)
+    : filteredItems;
 
-  console.log(`Images: ${words.length}. Existing audio: ${audioWords.length}. To generate: ${missingWords.length}.`);
-  console.log(`Found ${words.length} unique words. Model: ${modelName}, voice: ${voiceName}.`);
+  if (requestedItems && itemsToGenerate.length === 0) {
+    console.log(`No matching items found for: ${Array.from(requestedItems).join(', ')}`);
+    return;
+  }
 
-  for (const word of words) {
-    const outputPath = path.join(audioDir, `${word}.mp3`);
+  console.log(`Items: ${items.length}. Existing audio: ${audioWords.length}. To generate: ${missingWords.length}.`);
+  if (requestedItems) {
+    console.log(`Requested: ${Array.from(requestedItems).join(', ')}. Matched: ${itemsToGenerate.length}.`);
+  }
+  console.log(`Found ${items.length} unique ${isChunkSource ? 'chunks' : 'words'}. Model: ${modelName}, voice: ${voiceName}.`);
+
+  for (const item of itemsToGenerate) {
+    const outputPath = path.join(targetAudioDir, `${item.audioKey}.mp3`);
 
     if (!force) {
-      if (audioSet.has(word)) {
-        console.log(`Skipping ${word} (already exists). Use --force to overwrite.`);
+      if (audioSet.has(item.audioKey)) {
+        console.log(`Skipping ${item.text} (already exists). Use --force to overwrite.`);
         continue;
       }
     }
 
     try {
-      console.log(`Generating audio for ${word}...`);
-      const { buffer, extension } = await synthesizeWord(word, {
+      console.log(`Generating audio for ${item.text}...`);
+      const { buffer, extension } = await synthesizeAudioItem(item, {
         client,
         modelName,
         voiceName,
         targetMimeType,
         maxRetries,
         baseBackoffMs,
+        kind: isChunkSource ? 'chunk' : 'word',
       });
       const targetPath = outputPath.replace(/\.mp3$/, `.${extension}`);
       await fs.writeFile(targetPath, buffer);
     } catch (error) {
-      console.error(`Failed to generate audio for ${word}:`, error);
+      console.error(`Failed to generate audio for ${item.text}:`, error);
     }
   }
 
-  console.log(`Done. Audio files are in ${audioDir}.`);
+  console.log(`Done. Audio files are in ${targetAudioDir}.`);
 }
 
 main().catch(error => {

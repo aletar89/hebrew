@@ -1,4 +1,5 @@
 import { GermanLetterItem } from "../utils/imageUtils";
+import { ReadingChunk } from "../data/readingChunks";
 
 // --- Types ---
 
@@ -11,7 +12,9 @@ export enum ExerciseType {
     DOT_TRACING = 'dot-tracing',
     WORD_SCRAMBLE = 'word-scramble',
     WORD_TO_PICTURE = 'word-to-picture',
-    CASE_MATCH = 'case-match'
+    CASE_MATCH = 'case-match',
+    CHUNK_SOUND_TO_TEXT = 'chunk-sound-to-text',
+    CHUNK_TEXT_TO_SOUND = 'chunk-text-to-sound'
 }
 
 export type MatchingLetterCase = 'upper' | 'lower';
@@ -30,6 +33,8 @@ export interface GameState {
     wordOptions: string[];           // Options for PICTURE_TO_WORD
     uppercaseLetters: string[];
     lowercaseLetters: string[];
+    currentChunk: ReadingChunk | null;
+    chunkOptions: ReadingChunk[];
     targetWord: string | null;
     shuffledLetters: string[];
     currentArrangement: (string | null)[];
@@ -38,6 +43,7 @@ export interface GameState {
     selectedOption: GermanLetterItem | null; // Last selected image item
     selectedLetter: string | null;         // Last selected letter
     selectedWord: string | null;           // Last selected word
+    selectedChunkId: string | null;
     gameReady: boolean;
     error: string | null;
 }
@@ -48,6 +54,7 @@ export type GameAction =
     | { type: 'SELECT_IMAGE'; payload: { selected: GermanLetterItem; isCorrect: boolean } }
     | { type: 'SELECT_LETTER'; payload: { selected: string; isCorrect: boolean } }
     | { type: 'SELECT_WORD'; payload: { selected: string; isCorrect: boolean } }
+    | { type: 'SELECT_CHUNK'; payload: { selectedChunkId: string; isCorrect: boolean } }
     | { type: 'SUBMIT_DRAWING'; payload: { isCorrect: boolean } }
     | { type: 'FINISH_RACE'; payload: { isCorrect: boolean } }
     | { type: 'COMPLETE_TRACE' }
@@ -75,6 +82,8 @@ export const initialState: GameState = {
     wordOptions: [],
     uppercaseLetters: [],
     lowercaseLetters: [],
+    currentChunk: null,
+    chunkOptions: [],
     targetWord: null,
     shuffledLetters: [],
     currentArrangement: [],
@@ -83,6 +92,7 @@ export const initialState: GameState = {
     selectedOption: null,
     selectedLetter: null,
     selectedWord: null,
+    selectedChunkId: null,
     gameReady: false,
     error: null,
 };
@@ -103,6 +113,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             const isPictureToWord = action.payload.exerciseType === ExerciseType.PICTURE_TO_WORD;
             const isCaseMatch = action.payload.exerciseType === ExerciseType.CASE_MATCH;
             const isRaceToPicture = action.payload.exerciseType === ExerciseType.RACE_TO_PICTURE;
+            const isChunkSoundChoice =
+                action.payload.exerciseType === ExerciseType.CHUNK_SOUND_TO_TEXT ||
+                action.payload.exerciseType === ExerciseType.CHUNK_TEXT_TO_SOUND;
 
             const baseState = {
                 ...state,
@@ -122,6 +135,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 wordOptions: (isDrawing || isDotTracing || isWordScramble || isRaceToPicture) ? [] : (action.payload.wordOptions ?? []),
                 uppercaseLetters: isCaseMatch ? (action.payload.uppercaseLetters ?? []) : [],
                 lowercaseLetters: isCaseMatch ? (action.payload.lowercaseLetters ?? []) : [],
+                currentChunk: isChunkSoundChoice ? action.payload.currentChunk ?? null : null,
+                chunkOptions: isChunkSoundChoice ? action.payload.chunkOptions ?? [] : [],
                 targetWord: isWordScramble ? action.payload.targetWord ?? null : null,
                 shuffledLetters: isWordScramble ? action.payload.shuffledLetters ?? [] : [],
                 currentArrangement: isWordScramble ? (action.payload.targetWord?.split('').map(() => null) ?? []) : [],
@@ -129,6 +144,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 selectedOption: null,
                 selectedLetter: null,
                 selectedWord: null,
+                selectedChunkId: null,
                 gameReady: true,
                 error: null,
             };
@@ -174,6 +190,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             return {
                 ...state,
                 selectedWord: action.payload.selected,
+                isCorrect: action.payload.isCorrect,
+                score: action.payload.isCorrect ? state.score + 1 : state.score,
+            };
+        case 'SELECT_CHUNK':
+            if (
+                state.exerciseType !== ExerciseType.CHUNK_SOUND_TO_TEXT &&
+                state.exerciseType !== ExerciseType.CHUNK_TEXT_TO_SOUND
+            ) return state;
+            return {
+                ...state,
+                selectedChunkId: action.payload.selectedChunkId,
                 isCorrect: action.payload.isCorrect,
                 score: action.payload.isCorrect ? state.score + 1 : state.score,
             };
@@ -286,7 +313,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         }
         case 'RESET_FEEDBACK':
             // Ensure this also resets word scramble state if needed when moving to next round
-            return { ...state, isCorrect: null, selectedLetter: null, selectedOption: null, selectedWord: null };
+            return { ...state, isCorrect: null, selectedLetter: null, selectedOption: null, selectedWord: null, selectedChunkId: null };
         default:
             return state;
     }

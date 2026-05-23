@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "generate:audio": "node scripts/generateAudio.mjs",
+    "generate:chunk-audio": "node scripts/generateAudio.mjs --source chunks",
     "preview": "vite preview",
     "test": "vitest"
   },

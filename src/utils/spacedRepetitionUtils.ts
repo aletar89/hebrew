@@ -28,6 +28,11 @@ export interface WeightedLetter {
     weight: number;
 }
 
+export interface WeightedItem {
+    id: string;
+    weight: number;
+}
+
 export const calculateLetterWeight = (perf: LetterPerformance): number => {
     if (perf.totalAttempts === 0) {
         return LOW_CONFIDENCE_BOOST_MULTIPLIER * LOW_CONFIDENCE_BOOST_MULTIPLIER;
@@ -154,6 +159,66 @@ export const calculateLetterWeights = (
     return weightedLetters;
 };
 
+export const getItemPerformance = (
+    history: SelectionRecord[],
+    candidateIds: string[],
+    getTargetId: (record: SelectionRecord) => string | undefined
+): Record<string, LetterPerformance> => {
+    const performance: Record<string, LetterPerformance> = {};
+    const processedAnswers = new Set<string>();
+    const latestAttempt: Record<string, SelectionRecord> = {};
+
+    candidateIds.forEach(id => {
+        performance[id] = {
+            correct: 0,
+            incorrect: 0,
+            totalAttempts: 0,
+            lastAttemptTimestamp: 0,
+            lastAttemptCorrect: null
+        };
+    });
+
+    history.forEach(record => {
+        const targetId = getTargetId(record);
+        if (!targetId || !performance[targetId]) return;
+
+        if (!latestAttempt[targetId] || record.timestamp > latestAttempt[targetId].timestamp) {
+            latestAttempt[targetId] = record;
+        }
+
+        const answerKey = `${record.questionId}|${record.selectedAnswer}`;
+        if (!processedAnswers.has(answerKey)) {
+            if (record.isCorrect) {
+                performance[targetId].correct += 1;
+            } else {
+                performance[targetId].incorrect += 1;
+            }
+            performance[targetId].totalAttempts += 1;
+            processedAnswers.add(answerKey);
+        }
+    });
+
+    Object.keys(latestAttempt).forEach(id => {
+        performance[id].lastAttemptTimestamp = latestAttempt[id].timestamp;
+        performance[id].lastAttemptCorrect = latestAttempt[id].isCorrect;
+    });
+
+    return performance;
+};
+
+export const calculateItemWeights = (
+    history: SelectionRecord[],
+    candidateIds: string[],
+    getTargetId: (record: SelectionRecord) => string | undefined
+): WeightedItem[] => {
+    const performance = getItemPerformance(history, candidateIds, getTargetId);
+
+    return candidateIds.map(id => ({
+        id,
+        weight: calculateLetterWeight(performance[id])
+    }));
+};
+
 // --- Selection Function ---
 
 /**
@@ -184,6 +249,31 @@ export const getWeightedRandomLetter = (weightedItems: WeightedLetter[]): string
     // Fallback in case of floating point issues (should be rare)
     console.warn("Weighted random selection failed to pick an item, falling back to last item.");
     return weightedItems[weightedItems.length - 1].letter;
+};
+
+export const getWeightedRandomItem = (weightedItems: WeightedItem[]): string | undefined => {
+    if (!weightedItems || weightedItems.length === 0) {
+        return undefined;
+    }
+
+    const totalWeight = weightedItems.reduce((sum, item) => sum + item.weight, 0);
+    if (totalWeight <= 0) {
+        console.warn("Total item weight is zero, falling back to uniform random.");
+        const randomIndex = Math.floor(Math.random() * weightedItems.length);
+        return weightedItems[randomIndex].id;
+    }
+
+    let randomNum = Math.random() * totalWeight;
+
+    for (const item of weightedItems) {
+        if (randomNum < item.weight) {
+            return item.id;
+        }
+        randomNum -= item.weight;
+    }
+
+    console.warn("Weighted random item selection failed to pick an item, falling back to last item.");
+    return weightedItems[weightedItems.length - 1].id;
 };
 
 

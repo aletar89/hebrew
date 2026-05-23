@@ -12,6 +12,7 @@ export interface SelectionRecord {
     questionId: number; // Timestamp when the question round started
     targetLetter: string; // The correct German letter for this question
     targetWord?: string; // The correct German word for this question (optional)
+    targetChunk?: string; // The correct reading chunk for chunk sound games (optional)
     selectedAnswer: string; // The letter or image word the user selected
     isCorrect: boolean;
     exerciseType: string; // e.g., 'letter-to-picture'
