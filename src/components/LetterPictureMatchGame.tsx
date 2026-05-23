@@ -148,8 +148,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
           [ExerciseType.WORD_TO_PICTURE]: 14,
           [ExerciseType.WORD_SCRAMBLE]: 15,
           [ExerciseType.RACE_TO_PICTURE]: 0,
-          [ExerciseType.CHUNK_SOUND_TO_TEXT]: 7,
-          [ExerciseType.CHUNK_TEXT_TO_SOUND]: 7,
+          [ExerciseType.CHUNK_SOUND_TO_TEXT]: 20,
+          [ExerciseType.CHUNK_TEXT_TO_SOUND]: 20,
       };
       const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
       let cumulativeWeight = 0;
