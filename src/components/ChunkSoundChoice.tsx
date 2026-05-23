@@ -37,6 +37,25 @@ const SpeakerIcon = () => (
   </svg>
 );
 
+const CheckIcon = () => (
+  <svg
+    aria-hidden="true"
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M20 6 9 17l-5-5"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 export function ChunkSoundChoice({
   mode,
   targetChunk,
@@ -62,7 +81,7 @@ export function ChunkSoundChoice({
           <button
             type="button"
             className="chunk-main-audio-button"
-            onClick={() => playChunkAudio(targetChunk.audioKey)}
+            onClick={() => void playChunkAudio(targetChunk.audioKey)}
             aria-label="Chunk anhoeren"
           >
             <SpeakerIcon />
@@ -84,19 +103,28 @@ export function ChunkSoundChoice({
 
           if (isTextToSound) {
             return (
-              <button
+              <div
                 key={option.id}
-                type="button"
-                className={`chunk-sound-option${resultClass}`}
-                disabled={disabled}
-                onClick={() => {
-                  void playChunkAudio(option.audioKey);
-                  onSelect(option);
-                }}
-                aria-label={`Ton ${option.text}`}
+                className={`chunk-sound-answer${resultClass}`}
               >
-                <SpeakerIcon />
-              </button>
+                <button
+                  type="button"
+                  className="chunk-sound-option"
+                  onClick={() => void playChunkAudio(option.audioKey)}
+                  aria-label={`Ton ${option.text} anhoeren`}
+                >
+                  <SpeakerIcon />
+                </button>
+                <button
+                  type="button"
+                  className="chunk-select-option"
+                  disabled={disabled}
+                  onClick={() => onSelect(option)}
+                  aria-label={`Ton ${option.text} auswaehlen`}
+                >
+                  <CheckIcon />
+                </button>
+              </div>
             );
           }
 
