@@ -14,7 +14,6 @@ export interface ReadingChunk {
   level: ReadingChunkLevel;
   category: ReadingChunkCategory;
   audioKey: string;
-  ttsText?: string;
   confusionGroup: string;
   chunks?: string[];
 }
@@ -48,7 +47,7 @@ export const readingChunks: ReadingChunk[] = [
 
   { id: 'est', text: 'est', level: 2, category: 'cvc', audioKey: 'est', confusionGroup: 'short-cvc' },
   { id: 'ich', text: 'ich', level: 2, category: 'cvc', audioKey: 'ich', confusionGroup: 'ch-context' },
-  { id: 'ach', text: 'ach', level: 2, category: 'cvc', audioKey: 'ach', ttsText: 'ach ach ach', confusionGroup: 'ch-context' },
+  { id: 'ach', text: 'ach', level: 2, category: 'cvc', audioKey: 'ach', confusionGroup: 'ch-context' },
   { id: 'aus', text: 'aus', level: 2, category: 'cvc', audioKey: 'aus', confusionGroup: 'diphthongs' },
   { id: 'ein', text: 'ein', level: 2, category: 'cvc', audioKey: 'ein', confusionGroup: 'diphthongs' },
 ];

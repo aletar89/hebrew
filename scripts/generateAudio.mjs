@@ -107,9 +107,8 @@ async function listReadingChunks() {
     const id = body.match(/\bid:\s*'([^']+)'/)?.[1];
     const text = body.match(/\btext:\s*'([^']+)'/)?.[1];
     const audioKey = body.match(/\baudioKey:\s*'([^']+)'/)?.[1];
-    const ttsText = body.match(/\bttsText:\s*'([^']+)'/)?.[1];
 
-    return id && text && audioKey ? [{ id, text, audioKey, ttsText }] : [];
+    return id && text && audioKey ? [{ id, text, audioKey }] : [];
   });
 }
 
@@ -166,10 +165,10 @@ async function synthesizeAudioItem(item, { client, modelName, voiceName, targetM
   let attempt = 0;
   let lastError;
 
-  const chunkTranscript = item.ttsText ?? `${item.text} ${item.text} ${item.text}`;
+  const chunkTranscript = `Use German reading pronunciation, not English. Initial "sp" sounds like "schp" and initial "st" sounds like "scht". Say only this chunk three times: ${item.text} ${item.text} ${item.text}`;
   const prompt = kind === 'chunk'
     ? chunkTranscript
-    : item.text;
+    : `Speak the word "${item.text}" in German, slowly and clearly, for a language learning app. Return only the audio for that single word.`;
 
   while (attempt <= maxRetries) {
     try {
@@ -217,9 +216,16 @@ async function synthesizeAudioItem(item, { client, modelName, voiceName, targetM
       const retryAfterMatch = message.match(/retry in ([0-9.]+)s/i);
       const retryAfterSeconds = retryAfterMatch ? Number(retryAfterMatch[1]) : null;
       const status429 = message.includes('429') || message.includes('RESOURCE_EXHAUSTED');
+      const dailyQuotaExceeded =
+        message.includes('GenerateRequestsPerDayPerProjectPerModel') ||
+        message.includes('generate_requests_per_model_per_day');
       const backoffMs = retryAfterSeconds !== null
         ? Math.max(0, Math.ceil(retryAfterSeconds * 1000))
         : Math.min(60000, baseBackoffMs * 2 ** attempt);
+
+      if (dailyQuotaExceeded) {
+        throw error;
+      }
 
       if (message.includes('400 Bad Request') || message.includes('INVALID_ARGUMENT')) {
         throw error;
@@ -264,9 +270,16 @@ async function main() {
   console.log(isChunkSource ? `Scanning reading chunks in ${readingChunksPath}...` : `Scanning images in ${imageDir}...`);
   await fs.mkdir(targetAudioDir, { recursive: true });
 
-  const items = isChunkSource
+  const sourceItems = isChunkSource
     ? await listReadingChunks()
     : (await listImageWords()).map(word => ({ id: word, text: word, audioKey: word }));
+  const sourceItemKeys = new Set(sourceItems.flatMap(item => [item.id, item.text, item.audioKey]));
+  const adHocItems = isChunkSource && requestedItems
+    ? Array.from(requestedItems)
+        .filter(item => !sourceItemKeys.has(item))
+        .map(item => ({ id: item, text: item, audioKey: item }))
+    : [];
+  const items = [...sourceItems, ...adHocItems];
 
   if (items.length === 0) {
     console.log(isChunkSource ? 'No reading chunks found to process.' : 'No images found to process.');
@@ -319,6 +332,16 @@ async function main() {
       await fs.writeFile(targetPath, buffer);
     } catch (error) {
       console.error(`Failed to generate audio for ${item.text}:`, error);
+      const message = typeof error === 'object' && error !== null ? error.toString() : String(error);
+      if (
+        message.includes('GenerateRequestsPerDayPerProjectModel') ||
+        message.includes('GenerateRequestsPerDayPerProjectPerModel') ||
+        message.includes('generate_requests_per_model_per_day')
+      ) {
+        console.error('Daily TTS quota exhausted. Stopping generation.');
+        process.exitCode = 1;
+        break;
+      }
     }
   }
 
