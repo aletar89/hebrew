@@ -13,9 +13,13 @@ import { ComboIndicator } from './ComboIndicator';
 import {
   saveSelection,
   SelectionRecord,
+  StoredCurrentRound,
+  clearCurrentRound,
+  getCurrentRound,
   getSelectionHistory,
   getSessionScore,
   resetSessionScore,
+  saveCurrentRound,
   saveSessionScore,
 } from '../utils/storageUtils'; // Adjust path
 import { calculateItemWeights, calculateLetterWeights, getWeightedRandomItem, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
@@ -71,9 +75,42 @@ export interface LetterPictureMatchProps {
   onSelectionSave: () => void;
   onTogglePause: () => void;
   updateTrigger: number;
+  showDebugControls: boolean;
 }
 
-export function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused, onSelectionSave, onTogglePause, updateTrigger }: LetterPictureMatchProps) {
+const isStoredRoundValid = (
+  storedRound: StoredCurrentRound | null,
+  letterGroups: Record<string, GermanLetterItem[]>,
+  availableLetters: string[]
+): storedRound is StoredCurrentRound => {
+  if (!storedRound || !Object.values(ExerciseType).includes(storedRound.payload.exerciseType as ExerciseType)) {
+    return false;
+  }
+
+  const payload = storedRound.payload;
+  const knownImageUrls = new Set(Object.values(letterGroups).flat().map(item => item.imageUrl));
+  const hasKnownImage = (item: GermanLetterItem | null | undefined) => (
+    !item || knownImageUrls.has(item.imageUrl)
+  );
+  const hasKnownImages = (items: GermanLetterItem[] | undefined) => (
+    !items || items.every(hasKnownImage)
+  );
+  const hasKnownChunks = (chunks: ReadingChunk[] | undefined) => (
+    !chunks || chunks.every(chunk => readingChunks.some(knownChunk => knownChunk.id === chunk.id))
+  );
+
+  return (
+    (!payload.currentLetter || availableLetters.includes(payload.currentLetter)) &&
+    hasKnownImage(payload.correctImageItem) &&
+    hasKnownImages(payload.imageOptions) &&
+    hasKnownImages(payload.raceCorrectItems) &&
+    hasKnownImages(payload.raceDistractorItems) &&
+    (!payload.currentChunk || readingChunks.some(chunk => chunk.id === payload.currentChunk?.id)) &&
+    hasKnownChunks(payload.chunkOptions)
+  );
+};
+
+export function LetterPictureMatch({ letterGroups, availableLetters, isRecordingPaused, onSelectionSave, onTogglePause, updateTrigger, showDebugControls }: LetterPictureMatchProps) {
   // Let TS infer types from reducer and initial state
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
@@ -103,6 +140,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
     setIsConfirmingNewSession(false);
     resetSessionScore();
+    clearCurrentRound();
     dispatch({ type: 'SET_SCORE', payload: 0 });
     startNewRound();
   };
@@ -356,6 +394,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
                 }
 
+                saveCurrentRound({ questionId: newQuestionTimestamp, payload: roundPayload });
                 dispatch({ type: 'START_ROUND', payload: roundPayload });
                 return;
             }
@@ -493,6 +532,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
 
     // Dispatch the final payload
+    saveCurrentRound({ questionId: newQuestionTimestamp, payload: roundPayload });
     dispatch({
       type: 'START_ROUND',
       payload: roundPayload
@@ -508,7 +548,14 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     hasLoadedStoredScore.current = true;
 
     if (availableLetters.length > 0) {
-      startNewRound();
+      const storedRound = getCurrentRound();
+      if (isStoredRoundValid(storedRound, letterGroups, availableLetters)) {
+        setCurrentQuestionId(storedRound.questionId);
+        dispatch({ type: 'START_ROUND', payload: storedRound.payload });
+      } else {
+        clearCurrentRound();
+        startNewRound();
+      }
     } else {
       dispatch({ type: 'SET_ERROR', payload: "No German letter images found in '/public/images/'. Please add images and rebuild." });
     }
@@ -825,7 +872,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     )}
                 </div>
                 <div className="game-controls-container">
-                    <NextRoundButton onClick={() => startNewRound()} exerciseType={state.exerciseType} />
+                    {showDebugControls && (
+                        <NextRoundButton onClick={() => startNewRound()} exerciseType={state.exerciseType} />
+                    )}
                     <button
                         onClick={handleStartNewSession}
                         className={`new-letter-button${isConfirmingNewSession ? ' confirm-button' : ''}`}

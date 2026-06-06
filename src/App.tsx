@@ -49,6 +49,10 @@ const buildLabel = (() => {
 function App() {
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [selectionCounter, setSelectionCounter] = useState(0);
+  const showDebugControls = window.location.pathname
+    .split('/')
+    .filter(Boolean)
+    .includes('debug');
 
   const handleTogglePause = () => setIsRecordingPaused(prev => !prev);
   const triggerStatsUpdate = () => setSelectionCounter(count => count + 1);
@@ -62,6 +66,7 @@ function App() {
         onSelectionSave={triggerStatsUpdate}
         onTogglePause={handleTogglePause}
         updateTrigger={selectionCounter}
+        showDebugControls={showDebugControls}
       />
       <footer className="app-footer">Updated {buildLabel}</footer>
     </div>

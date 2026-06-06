@@ -1,10 +1,11 @@
 // src/utils/storageUtils.ts
-// Removed unused import: import { GermanLetterItem } from "./imageUtils";
+import type { GameState } from "../state/gameReducer";
 
 const STORAGE_KEY = 'germanLearningStats';
 const SESSION_SCORE_STORAGE_KEY = 'germanLearningSessionScore';
 const SESSION_SCORE_LAST_SUCCESS_STORAGE_KEY = 'germanLearningSessionLastSuccessAt';
 const SESSION_SCORE_EXPIRY_MS = 60 * 60 * 1000;
+const CURRENT_ROUND_STORAGE_KEY = 'germanLearningCurrentRound';
 
 // Define the structure for each recorded selection
 export interface SelectionRecord {
@@ -16,6 +17,11 @@ export interface SelectionRecord {
     selectedAnswer: string; // The letter or image word the user selected
     isCorrect: boolean;
     exerciseType: string; // e.g., 'letter-to-picture'
+}
+
+export interface StoredCurrentRound {
+    questionId: number;
+    payload: Partial<GameState>;
 }
 
 // Retrieve the full history from localStorage
@@ -119,5 +125,50 @@ export const resetSessionScore = (): void => {
         localStorage.removeItem(SESSION_SCORE_LAST_SUCCESS_STORAGE_KEY);
     } catch (error) {
         console.error("Error resetting session score in localStorage:", error);
+    }
+};
+
+export const getCurrentRound = (): StoredCurrentRound | null => {
+    try {
+        const storedRound = localStorage.getItem(CURRENT_ROUND_STORAGE_KEY);
+        if (!storedRound) {
+            return null;
+        }
+
+        const parsedRound = JSON.parse(storedRound);
+        if (
+            parsedRound &&
+            typeof parsedRound.questionId === 'number' &&
+            parsedRound.questionId > 0 &&
+            parsedRound.payload &&
+            typeof parsedRound.payload === 'object'
+        ) {
+            return parsedRound;
+        }
+    } catch (error) {
+        console.error("Error reading current round from localStorage:", error);
+    }
+
+    return null;
+};
+
+export const saveCurrentRound = (round: StoredCurrentRound): void => {
+    if (!round || typeof round.questionId !== 'number' || round.questionId <= 0 || !round.payload.exerciseType) {
+        console.warn("Attempted to save invalid current round:", round);
+        return;
+    }
+
+    try {
+        localStorage.setItem(CURRENT_ROUND_STORAGE_KEY, JSON.stringify(round));
+    } catch (error) {
+        console.error("Error writing current round to localStorage:", error);
+    }
+};
+
+export const clearCurrentRound = (): void => {
+    try {
+        localStorage.removeItem(CURRENT_ROUND_STORAGE_KEY);
+    } catch (error) {
+        console.error("Error clearing current round from localStorage:", error);
     }
 };
