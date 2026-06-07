@@ -56,6 +56,8 @@ const CheckIcon = () => (
   </svg>
 );
 
+const displayChunkText = (text: string): string => text.toLocaleUpperCase('de-DE');
+
 export function ChunkSoundChoice({
   mode,
   targetChunk,
@@ -71,12 +73,13 @@ export function ChunkSoundChoice({
   }, [mode, targetChunk.audioKey]);
 
   const isTextToSound = mode === 'text-to-sound';
+  const targetText = displayChunkText(targetChunk.text);
 
   return (
     <div className="chunk-sound-choice">
       <div className="chunk-prompt">
         {isTextToSound ? (
-          <div className="chunk-written-prompt">{targetChunk.text}</div>
+          <div className="chunk-written-prompt">{targetText}</div>
         ) : (
           <button
             type="button"
@@ -93,6 +96,7 @@ export function ChunkSoundChoice({
         {options.map(option => {
           const isSelected = selectedChunkId === option.id;
           const isCorrect = option.id === targetChunk.id;
+          const optionText = displayChunkText(option.text);
           const resultClass = selectedChunkId
             ? isCorrect
               ? ' correct-option'
@@ -111,7 +115,7 @@ export function ChunkSoundChoice({
                   type="button"
                   className="chunk-sound-option"
                   onClick={() => void playChunkAudio(option.audioKey)}
-                  aria-label={`Ton ${option.text} anhoeren`}
+                  aria-label={`Ton ${optionText} anhoeren`}
                 >
                   <SpeakerIcon />
                 </button>
@@ -120,7 +124,7 @@ export function ChunkSoundChoice({
                   className="chunk-select-option"
                   disabled={disabled}
                   onClick={() => onSelect(option)}
-                  aria-label={`Ton ${option.text} auswaehlen`}
+                  aria-label={`Ton ${optionText} auswaehlen`}
                 >
                   <CheckIcon />
                 </button>
@@ -136,7 +140,7 @@ export function ChunkSoundChoice({
               disabled={disabled}
               onClick={() => onSelect(option)}
             >
-              {option.text}
+              {optionText}
             </button>
           );
         })}
