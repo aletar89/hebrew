@@ -226,27 +226,30 @@ footer {
   text-align: center;
 }
 
-/* Feedback area with fixed height to prevent layout shifts */
 .feedback-container {
-  min-height: 160px;
-  margin: 20px 0;
+  position: absolute;
+  inset: -8px 96px auto 16px;
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 56px;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .feedback {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  min-height: 128px;
-  padding: 12px 22px;
-  border-radius: 24px;
-  font-size: 1.35rem;
+  gap: 10px;
+  min-height: 64px;
+  max-width: min(100%, 480px);
+  padding: 8px 16px 8px 10px;
+  border-radius: 18px;
+  font-size: 1.05rem;
   font-weight: bold;
   text-align: center;
-  box-shadow: 0 10px 24px rgba(31, 41, 55, 0.14);
+  box-shadow: 0 12px 28px rgba(31, 41, 55, 0.18);
 }
 
 .feedback.correct {
@@ -262,11 +265,11 @@ footer {
 }
 
 .feedback-character {
-  width: clamp(88px, 18vw, 132px);
+  width: clamp(54px, 10vw, 82px);
   aspect-ratio: 1;
   flex: 0 0 auto;
   object-fit: contain;
-  border-radius: 18px;
+  border-radius: 14px;
 }
 
 .feedback-message {
@@ -454,6 +457,20 @@ footer {
     gap: 10px;
   }
 
+  .feedback-container {
+    inset: -10px 78px auto 8px;
+  }
+
+  .feedback {
+    font-size: 0.95rem;
+    min-height: 58px;
+    padding: 7px 12px 7px 8px;
+  }
+
+  .feedback-character {
+    width: clamp(48px, 13vw, 66px);
+  }
+
   .score-progress-track-shell {
     padding: 14px 10px;
   }
@@ -514,6 +531,21 @@ footer {
     width: 100%;
   }
 
+  .feedback-container {
+    inset: -12px 54px auto 4px;
+  }
+
+  .feedback {
+    gap: 8px;
+    max-width: 100%;
+    font-size: 0.86rem;
+    line-height: 1.15;
+  }
+
+  .feedback-character {
+    width: 48px;
+  }
+
   .score-progress-preview {
     align-self: center;
   }
@@ -526,6 +558,7 @@ footer {
 }
 
 .score-row {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: 12px;

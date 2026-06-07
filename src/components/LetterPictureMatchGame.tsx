@@ -846,6 +846,11 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         <div className="letter-match-container">
             <div className="score-row">
                 <ScoreProgressBar score={state.score} />
+                <div className="feedback-container">
+                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && state.exerciseType !== ExerciseType.CASE_MATCH && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && (
+                        <FeedbackDisplay isCorrect={state.isCorrect} />
+                    )}
+                </div>
                 <ComboIndicator
                     comboCount={comboCount}
                     unlocked={comboCount >= RACE_COMBO_UNLOCK && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && canDoRaceToPicture}
@@ -865,12 +870,6 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     onContinueRace={() => startNewRound()}
                     dispatch={dispatch}
                 />
-                <div className="feedback-container">
-                    {/* Only show text feedback for non-word-scramble types */}
-                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && state.exerciseType !== ExerciseType.CASE_MATCH && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && (
-                        <FeedbackDisplay isCorrect={state.isCorrect} />
-                    )}
-                </div>
                 <div className="game-controls-container">
                     {showDebugControls && (
                         <NextRoundButton onClick={() => startNewRound()} exerciseType={state.exerciseType} />
