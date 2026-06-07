@@ -20,7 +20,7 @@ export interface ReadingChunk {
 
 export const readingChunks: ReadingChunk[] = [
   { id: 'ma', text: 'ma', level: 1, category: 'cv', audioKey: 'ma', confusionGroup: 'm-vowels' },
-  { id: 'me', text: 'me', level: 1, category: 'cv', audioKey: 'me', confusionGroup: 'm-vowels' },
+  { id: 'mel', text: 'mel', level: 2, category: 'cvc', audioKey: 'mel', confusionGroup: 'frequent-image-syllables' },
   { id: 'mi', text: 'mi', level: 1, category: 'cv', audioKey: 'mi', confusionGroup: 'm-vowels' },
   { id: 'mo', text: 'mo', level: 1, category: 'cv', audioKey: 'mo', confusionGroup: 'm-vowels' },
   { id: 'mu', text: 'mu', level: 1, category: 'cv', audioKey: 'mu', confusionGroup: 'm-vowels' },
@@ -50,4 +50,19 @@ export const readingChunks: ReadingChunk[] = [
   { id: 'ach', text: 'ach', level: 2, category: 'cvc', audioKey: 'ach', confusionGroup: 'ch-context' },
   { id: 'aus', text: 'aus', level: 2, category: 'cvc', audioKey: 'aus', confusionGroup: 'diphthongs' },
   { id: 'ein', text: 'ein', level: 2, category: 'cvc', audioKey: 'ein', confusionGroup: 'diphthongs' },
+
+  { id: 'se', text: 'se', level: 1, category: 'cv', audioKey: 'se', confusionGroup: 'frequent-image-syllables' },
+  { id: 're', text: 're', level: 1, category: 'cv', audioKey: 're', confusionGroup: 'frequent-image-syllables' },
+  { id: 'ge', text: 'ge', level: 1, category: 'cv', audioKey: 'ge', confusionGroup: 'frequent-image-syllables' },
+  { id: 'le', text: 'le', level: 1, category: 'cv', audioKey: 'le', confusionGroup: 'frequent-image-syllables' },
+  { id: 'te', text: 'te', level: 1, category: 'cv', audioKey: 'te', confusionGroup: 'frequent-image-syllables' },
+  { id: 'fe', text: 'fe', level: 1, category: 'cv', audioKey: 'fe', confusionGroup: 'frequent-image-syllables' },
+  { id: 'ze', text: 'ze', level: 1, category: 'cv', audioKey: 'ze', confusionGroup: 'frequent-image-syllables' },
+  { id: 'o', text: 'O', level: 1, category: 'word', audioKey: 'o', confusionGroup: 'frequent-image-syllables' },
+  { id: 'ter', text: 'ter', level: 2, category: 'cvc', audioKey: 'ter', confusionGroup: 'frequent-image-syllables' },
+  { id: 'gen', text: 'gen', level: 2, category: 'cvc', audioKey: 'gen', confusionGroup: 'frequent-image-syllables' },
+  { id: 'cke', text: 'cke', level: 2, category: 'cvc', audioKey: 'cke', confusionGroup: 'frequent-image-syllables' },
+  { id: 'fel', text: 'fel', level: 2, category: 'cvc', audioKey: 'fel', confusionGroup: 'frequent-image-syllables' },
+  { id: 'gel', text: 'gel', level: 2, category: 'cvc', audioKey: 'gel', confusionGroup: 'frequent-image-syllables' },
+  { id: 'sche', text: 'sche', level: 2, category: 'cvc', audioKey: 'sche', confusionGroup: 'frequent-image-syllables' },
 ];
