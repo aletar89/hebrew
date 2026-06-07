@@ -17,9 +17,12 @@ import {
   clearCurrentRound,
   getCurrentRound,
   getSelectionHistory,
+  getSessionCombo,
   getSessionScore,
+  resetSessionCombo,
   resetSessionScore,
   saveCurrentRound,
+  saveSessionCombo,
   saveSessionScore,
 } from '../utils/storageUtils'; // Adjust path
 import { calculateItemWeights, calculateLetterWeights, getWeightedRandomItem, getWeightedRandomLetter } from '../utils/spacedRepetitionUtils'; // Adjust path
@@ -141,7 +144,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
     setIsConfirmingNewSession(false);
     resetSessionScore();
+    resetSessionCombo();
     clearCurrentRound();
+    setComboCount(0);
     dispatch({ type: 'SET_SCORE', payload: 0 });
     startNewRound();
   };
@@ -547,6 +552,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   useEffect(() => {
     const storedSessionScore = getSessionScore();
     previousScoreRef.current = storedSessionScore;
+    setComboCount(getSessionCombo());
     dispatch({ type: 'SET_SCORE', payload: storedSessionScore });
     hasLoadedStoredScore.current = true;
 
@@ -611,6 +617,10 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     saveSessionScore(state.score, scoreIncreased ? Date.now() : undefined);
     previousScoreRef.current = state.score;
   }, [state.score]);
+
+  useEffect(() => {
+    saveSessionCombo(comboCount);
+  }, [comboCount]);
 
   useEffect(() => {
     if (state.isCorrect === null || currentQuestionId <= 0) {
