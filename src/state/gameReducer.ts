@@ -36,6 +36,7 @@ export interface GameState {
     currentChunk: ReadingChunk | null;
     chunkOptions: ReadingChunk[];
     targetWord: string | null;
+    targetWordUnits: string[];
     shuffledLetters: string[];
     currentArrangement: (string | null)[];
     isCorrect: boolean | null;
@@ -85,6 +86,7 @@ export const initialState: GameState = {
     currentChunk: null,
     chunkOptions: [],
     targetWord: null,
+    targetWordUnits: [],
     shuffledLetters: [],
     currentArrangement: [],
     isCorrect: null,
@@ -138,8 +140,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 currentChunk: isChunkSoundChoice ? action.payload.currentChunk ?? null : null,
                 chunkOptions: isChunkSoundChoice ? action.payload.chunkOptions ?? [] : [],
                 targetWord: isWordScramble ? action.payload.targetWord ?? null : null,
+                targetWordUnits: isWordScramble
+                    ? action.payload.targetWordUnits ?? action.payload.targetWord?.split('') ?? []
+                    : [],
                 shuffledLetters: isWordScramble ? action.payload.shuffledLetters ?? [] : [],
-                currentArrangement: isWordScramble ? (action.payload.targetWord?.split('').map(() => null) ?? []) : [],
+                currentArrangement: isWordScramble
+                    ? (action.payload.targetWordUnits ?? action.payload.targetWord?.split('') ?? []).map(() => null)
+                    : [],
                 isCorrect: null,
                 selectedOption: null,
                 selectedLetter: null,
@@ -293,7 +300,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
             for (let i = 0; i < newArrangement.length; i++) {
                 // If the letter in the slot doesn't match the target word at that position
-                if (newArrangement[i] !== null && newArrangement[i] !== state.targetWord[i]) {
+                if (newArrangement[i] !== null && newArrangement[i] !== state.targetWordUnits[i]) {
                     lettersToReturnToBank.push(newArrangement[i] as string);
                     newArrangement[i] = null; // Clear the incorrect letter from the slot
                 }

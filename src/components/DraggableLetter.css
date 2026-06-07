@@ -4,13 +4,15 @@
     display: inline-flex; /* Use inline-flex for better alignment */
     justify-content: center;
     align-items: center;
-    width: 40px;
+    min-width: 40px;
     height: 40px;
+    padding: 0 10px;
     border: 1px solid #bdbdbd;
     border-radius: 4px;
     background-color: #fff;
     font-size: 1.4em;
     font-weight: bold;
+    box-sizing: border-box;
     cursor: grab; /* Indicate draggable */
     user-select: none; /* Prevent text selection during drag */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);

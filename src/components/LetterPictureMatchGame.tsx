@@ -27,6 +27,7 @@ import { ConfettiManager } from './ConfettiManager'; // Import the new manager
 import { letterDotPatterns } from '../utils/letterDotPatterns';
 import { enqueueIdleTasks, preloadImage } from '../utils/preloadUtils';
 import { preloadChunkAudio, preloadWordAudio } from '../utils/audioUtils';
+import { canScrambleWord, getWordScrambleUnits } from '../utils/syllableUtils';
 
 // --- Game Logic Component ---
 const RACE_COMBO_UNLOCK = 9;
@@ -211,7 +212,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     }
 
     const canDoWordScramble = availableLetters.some(letter =>
-        letterGroups[letter]?.some(item => item.word && item.word.length > 1 && item.word.length <= 5)
+        letterGroups[letter]?.some(item => canScrambleWord(item.word))
     );
     const canDoMatching = availableLetters.some(letter =>
         letterGroups[letter]?.length > 0
@@ -348,7 +349,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         let candidateLetters: string[];
         if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
             candidateLetters = availableLetters.filter(letter =>
-                letterGroups[letter]?.some(item => item.word && item.word.length > 1 && item.word.length <= 5)
+                letterGroups[letter]?.some(item => canScrambleWord(item.word))
             );
         } else {
             candidateLetters = availableLetters.filter(letter =>
@@ -403,7 +404,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
             roundPayload.letterDisplayCase = getRandomMatchingLetterCase();
             const possibleImages = letterGroups[selectedLetter].filter(item =>
                 newExerciseType === ExerciseType.WORD_SCRAMBLE
-                    ? (item.word && item.word.length > 1 && item.word.length <= 5)
+                    ? canScrambleWord(item.word)
                     : true
             );
 
@@ -454,13 +455,15 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                 roundPayload.letterOptions = shuffleArray([selectedLetter, ...finalIncorrectLetters]);
             } else if (newExerciseType === ExerciseType.WORD_SCRAMBLE) {
                 const targetWord = selectedImage.word;
-                if (!targetWord || targetWord.length <= 1 || targetWord.length > 5) {
-                    dispatch({ type: 'SET_ERROR', payload: `Selected image for Word Scramble has invalid word: '${targetWord}' (length ${targetWord?.length}) for letter ${selectedLetter}.` });
+                if (!canScrambleWord(targetWord)) {
+                    dispatch({ type: 'SET_ERROR', payload: `Selected image for Word Scramble has invalid word: '${targetWord}' for letter ${selectedLetter}.` });
                     return;
                 }
 
+                const targetWordUnits = getWordScrambleUnits(targetWord);
                 roundPayload.targetWord = targetWord;
-                roundPayload.shuffledLetters = shuffleArray(targetWord.split(''));
+                roundPayload.targetWordUnits = targetWordUnits;
+                roundPayload.shuffledLetters = shuffleArray(targetWordUnits);
             } else if (newExerciseType === ExerciseType.WORD_TO_PICTURE) {
                 const candidateWordLetters = availableLetters.filter(letter =>
                     letterGroups[letter] && letterGroups[letter].length >= 3

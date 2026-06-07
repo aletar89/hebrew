@@ -45,7 +45,7 @@ export const DraggableLetter: React.FC<DraggableLetterProps> = ({ id, letter, /*
             {...listeners} // Attach pointer/touch listeners
             {...attributes} // Attach accessibility attributes
             className={className}
-            aria-label={`Draggable letter ${displayLetter}`}
+            aria-label={`Draggable word part ${displayLetter}`}
         >
             {displayLetter}
         </div>

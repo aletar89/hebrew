@@ -24,6 +24,7 @@
 .word-scramble-slots {
     display: flex;
     flex-direction: row; /* Left-to-right for German */
+    flex-wrap: wrap;
     justify-content: center;
     align-items: center;
     gap: 8px; /* Spacing between slots */
@@ -33,7 +34,7 @@
     border: 1px dashed #ddd;
     border-radius: 4px;
     width: 100%;
-    max-width: 400px; /* Limit width */
+    max-width: 520px; /* Limit width */
     box-sizing: border-box;
 }
 
@@ -47,7 +48,7 @@
     border-radius: 8px;
     background-color: #f9f9f9;
     width: 100%;
-    max-width: 400px; /* Limit width */
+    max-width: 520px; /* Limit width */
     box-sizing: border-box;
 }
 
@@ -93,7 +94,7 @@
 
 /* Placeholder for empty slots */
 .empty-slot-placeholder {
-    width: 40px; /* Match DraggableLetter size */
+    min-width: 40px; /* Match DraggableLetter minimum size */
     height: 40px; /* Match DraggableLetter size */
     background-color: #eeeeee;
     border-radius: 4px;
