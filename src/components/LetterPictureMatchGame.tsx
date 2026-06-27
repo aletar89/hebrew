@@ -644,6 +644,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
 
   useEffect(() => {
     let timer: number | undefined;
+    const isChunkSoundRound =
+      state.exerciseType === ExerciseType.CHUNK_SOUND_TO_TEXT ||
+      state.exerciseType === ExerciseType.CHUNK_TEXT_TO_SOUND;
     // --- Condition to advance round ---
     const shouldAdvance =
         // Always advance if correct
@@ -652,15 +655,13 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         (state.isCorrect === false &&
          state.exerciseType !== ExerciseType.WORD_SCRAMBLE &&
          state.exerciseType !== ExerciseType.DRAWING &&
-         state.exerciseType !== ExerciseType.RACE_TO_PICTURE &&
-         state.exerciseType !== ExerciseType.CHUNK_SOUND_TO_TEXT &&
-         state.exerciseType !== ExerciseType.CHUNK_TEXT_TO_SOUND);
+         state.exerciseType !== ExerciseType.RACE_TO_PICTURE);
 
     if (shouldAdvance) {
       console.log(`Advancing round automatically (Exercise: ${state.exerciseType}, Correct: ${state.isCorrect}). Starting next round soon...`);
       timer = window.setTimeout(() => {
         startNewRound();
-      }, 2000); // Adjust delay as needed
+      }, state.isCorrect === false && isChunkSoundRound ? 1000 : 2000);
     }
     return () => clearTimeout(timer);
   }, [state.isCorrect, state.exerciseType, startNewRound]);
