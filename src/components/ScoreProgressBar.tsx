@@ -1,5 +1,5 @@
-import React from 'react';
-import { getConfettiConfigForScore, getMilestoneScores, SESSION_TARGET_SCORE } from '../utils/confettiMilestones';
+import React, { useEffect, useRef, useState } from 'react';
+import { getMilestoneScores, SESSION_TARGET_SCORE } from '../utils/confettiMilestones';
 
 interface ScoreProgressBarProps {
   score: number;
@@ -10,21 +10,30 @@ const clampScore = (score: number): number => {
 };
 
 export const ScoreProgressBar: React.FC<ScoreProgressBarProps> = ({ score }) => {
+  const previousScoreRef = useRef(score);
+  const [didGainScore, setDidGainScore] = useState(false);
   const currentScore = clampScore(score);
   const milestones = getMilestoneScores();
   const nextMilestone = milestones.find(milestone => milestone > currentScore) ?? SESSION_TARGET_SCORE;
-  const reachedMilestone = [...milestones].reverse().find(milestone => milestone <= currentScore);
-  const fillGradient = reachedMilestone
-    ? (() => {
-        const reachedConfetti = getConfettiConfigForScore(reachedMilestone);
-        return `linear-gradient(90deg, ${reachedConfetti.colors[0]}, ${reachedConfetti.colors[reachedConfetti.colors.length - 1]})`;
-      })()
-    : 'linear-gradient(90deg, #ffff00, #ffd700)';
   const fillPercent = (currentScore / SESSION_TARGET_SCORE) * 100;
+
+  useEffect(() => {
+    const previousScore = previousScoreRef.current;
+    previousScoreRef.current = score;
+
+    if (score <= previousScore) {
+      return;
+    }
+
+    setDidGainScore(true);
+    const timeoutId = window.setTimeout(() => setDidGainScore(false), 650);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [score]);
 
   return (
     <div
-      className="score-progress"
+      className={`score-progress${didGainScore ? ' score-progress-gained' : ''}`}
       aria-label={`Progress toward the next confetti reward. Score ${currentScore} out of ${SESSION_TARGET_SCORE}. Next reward at ${nextMilestone}.`}
     >
       <div className="score-progress-track-shell">
@@ -32,8 +41,7 @@ export const ScoreProgressBar: React.FC<ScoreProgressBarProps> = ({ score }) => 
           <div
             className="score-progress-fill"
             style={{
-              width: `${fillPercent}%`,
-              background: fillGradient,
+              transform: `scaleX(${fillPercent / 100})`,
             }}
           />
         </div>

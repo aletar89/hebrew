@@ -10,6 +10,7 @@ import { GameArea } from './GameArea';
 import { NextRoundButton } from './NextRoundButton';
 import { StatsDisplay } from './StatsDisplay';
 import { ComboIndicator } from './ComboIndicator';
+import { ScoreRewardBurst } from './ScoreRewardBurst';
 import {
   saveSelection,
   SelectionRecord,
@@ -120,6 +121,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
   const [currentQuestionId, setCurrentQuestionId] = useState<number>(0);
   const [showStats, setShowStats] = useState(false);
   const [isConfirmingNewSession, setIsConfirmingNewSession] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const scoreDisplayRef = useRef<HTMLDivElement>(null); // Keep ref for potential future use or other components
   const hasQueuedIdlePreload = useRef(false);
   const caseMatchAttemptCounter = useRef(0);
@@ -135,7 +137,10 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
       !raceCandidateLetters.includes(letter) && (letterGroups[letter]?.length ?? 0) > 0
     );
 
-  const handleToggleStats = () => setShowStats(prev => !prev);
+  const handleToggleStats = () => {
+    setShowStats(prev => !prev);
+    setIsMenuOpen(false);
+  };
   const handleStartNewSession = () => {
     if (!isConfirmingNewSession) {
       setIsConfirmingNewSession(true);
@@ -143,6 +148,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     }
 
     setIsConfirmingNewSession(false);
+    setIsMenuOpen(false);
     resetSessionScore();
     resetSessionCombo();
     clearCurrentRound();
@@ -857,45 +863,65 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         <ConfettiManager score={state.score} />
 
         <div className="letter-match-container">
-            <div className="score-row">
-                <ScoreProgressBar score={state.score} />
-                <div className="feedback-container">
-                    {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && state.exerciseType !== ExerciseType.CASE_MATCH && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && (
-                        <FeedbackDisplay isCorrect={state.isCorrect} />
-                    )}
-                </div>
+            <div className="game-hud">
+              <div className="hud-status-row">
+                <ScoreDisplay score={state.score} ref={scoreDisplayRef} />
                 <ComboIndicator
                     comboCount={comboCount}
                     unlocked={comboCount >= RACE_COMBO_UNLOCK && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && canDoRaceToPicture}
                     onActivateRace={handleActivateRace}
                 />
-            </div>
-            <ScoreDisplay score={state.score} ref={scoreDisplayRef} />
-            <div className="game-content">
-                <GameArea
-                    gameState={state}
-                    onImageSelect={handleImageSelect}
-                    onLetterSelect={handleLetterSelect}
-                    onWordSelect={handleWordSelect}
-                    onCaseMatchAttempt={handleCaseMatchAttempt}
-                    onChunkSelect={handleChunkSelect}
-                    onRaceAttempt={handleRaceAttempt}
-                    onContinueRace={() => startNewRound()}
-                    dispatch={dispatch}
-                />
-                <div className="game-controls-container">
-                    {showDebugControls && (
-                        <NextRoundButton onClick={() => startNewRound()} exerciseType={state.exerciseType} />
-                    )}
+                <div className="game-menu">
                     <button
-                        onClick={handleStartNewSession}
-                        className={`new-letter-button${isConfirmingNewSession ? ' confirm-button' : ''}`}
+                        type="button"
+                        className="game-menu-button"
+                        aria-label="Game menu"
+                        aria-expanded={isMenuOpen}
+                        onClick={() => setIsMenuOpen(open => !open)}
                     >
-                        {isConfirmingNewSession ? 'Click Again to Confirm' : 'New Session'}
+                        <span aria-hidden="true" className="game-menu-icon">⚙️</span>
                     </button>
-                    <button onClick={handleToggleStats} className="new-letter-button">
-                        {showStats ? 'Hide Stats' : 'Show Stats'}
-                    </button>
+                    {isMenuOpen && (
+                        <div className="game-menu-panel">
+                            {showDebugControls && (
+                                <NextRoundButton onClick={() => { setIsMenuOpen(false); startNewRound(); }} exerciseType={state.exerciseType} />
+                            )}
+                            <button
+                                onClick={handleStartNewSession}
+                                className={`new-letter-button${isConfirmingNewSession ? ' confirm-button' : ''}`}
+                            >
+                                {isConfirmingNewSession ? 'Click Again to Confirm' : 'New Session'}
+                            </button>
+                            <button onClick={handleToggleStats} className="new-letter-button">
+                                {showStats ? 'Hide Stats' : 'Show Stats'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+              </div>
+              <div className="score-progress-row">
+                <ScoreProgressBar score={state.score} />
+                <ScoreRewardBurst score={state.score} />
+              </div>
+            </div>
+            <div className="feedback-container">
+                {state.exerciseType !== ExerciseType.WORD_SCRAMBLE && state.exerciseType !== ExerciseType.CASE_MATCH && state.exerciseType !== ExerciseType.RACE_TO_PICTURE && (
+                    <FeedbackDisplay isCorrect={state.isCorrect} />
+                )}
+            </div>
+            <div className="game-content">
+                <div key={currentQuestionId} className="game-round-panel">
+                    <GameArea
+                        gameState={state}
+                        onImageSelect={handleImageSelect}
+                        onLetterSelect={handleLetterSelect}
+                        onWordSelect={handleWordSelect}
+                        onCaseMatchAttempt={handleCaseMatchAttempt}
+                        onChunkSelect={handleChunkSelect}
+                        onRaceAttempt={handleRaceAttempt}
+                        onContinueRace={() => startNewRound()}
+                        dispatch={dispatch}
+                    />
                 </div>
             </div>
         </div>

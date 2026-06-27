@@ -7,7 +7,7 @@ export const ScoreDisplay = React.forwardRef<
     { score: number } // Type of the component's props
 >(({ score }, ref) => (
     <div className="score-display" ref={ref}>
-        <div className="score-number">Score: {score}</div>
+        <div className="score-number" aria-label={`Score ${score}`}>{score}</div>
     </div>
 ));
 

@@ -283,9 +283,10 @@ export const DotTraceCanvas: React.FC<DotTraceCanvasProps> = ({
           <path key={`drawn-${idx}`} d={d} className="dot-trace-path" />
         ))}
       </svg>
-      <div className="dot-trace-hint">
-        Ziehe deinen Finger von Punkt zu Punkt. Wenn kein neuer gruener Punkt erscheint, Finger anheben.
-      </div>
+      <div
+        className="dot-trace-hint"
+        aria-label="Trace from dot to dot. Lift your finger when the next dot starts a new stroke."
+      />
     </div>
   );
 };

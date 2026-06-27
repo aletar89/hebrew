@@ -152,8 +152,7 @@ export function LetterCaseMatch({
           ))}
         </svg>
 
-        <div className="letter-case-column">
-          <h3>Capital</h3>
+        <div className="letter-case-column" aria-label="Capital letters">
           <div className="letter-case-list">
             {uppercaseLetters.map(letter => {
               const isMatched = Boolean(matchedPairs[letter]);
@@ -175,8 +174,7 @@ export function LetterCaseMatch({
           </div>
         </div>
 
-        <div className="letter-case-column">
-          <h3>Lowercase</h3>
+        <div className="letter-case-column" aria-label="Lowercase letters">
           <div className="letter-case-list">
             {lowercaseLetters.map(letter => {
               const isMatched = usedLowercaseLetters.has(letter);
@@ -199,9 +197,7 @@ export function LetterCaseMatch({
         </div>
       </div>
 
-      <div className="letter-case-status" aria-live="polite">
-        {statusMessage ?? 'Connect each capital letter to its lowercase form.'}
-      </div>
+      <div className="letter-case-status" aria-live="polite" aria-label={statusMessage ?? undefined} />
     </div>
   );
 }

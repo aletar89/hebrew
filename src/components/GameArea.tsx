@@ -298,11 +298,6 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                     height={CANVAS_HEIGHT}
                     onComplete={() => dispatch({ type: 'COMPLETE_TRACE' })}
                 />
-                {isRoundCorrect && (
-                    <div className="dot-tracing-success">
-                        Super gemacht! Du hast den Buchstaben in der richtigen Reihenfolge verbunden.
-                    </div>
-                )}
             </div>
         );
     }
@@ -364,13 +359,10 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                         )
                     )}
                     {attemptSubmitted && drawingEvaluation && !drawingEvaluation.isCorrect && (
-                        <div className="score-details drawing-feedback-summary">
-                            <p>Rot zeigt fehlende Teile des Buchstabens. Blau zeigt Striche ausserhalb der Form.</p>
-                            <p>
-                                Abdeckung: {Math.round(drawingEvaluation.coverageScore * 100)}%,
-                                Praezision: {Math.round(drawingEvaluation.accuracyScore * 100)}%
-                            </p>
-                        </div>
+                        <div
+                            className="drawing-feedback-summary"
+                            aria-label={`Try again. Coverage ${Math.round(drawingEvaluation.coverageScore * 100)} percent. Precision ${Math.round(drawingEvaluation.accuracyScore * 100)} percent.`}
+                        />
                     )}
                 </div>
             </div>
@@ -480,7 +472,6 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                                 </svg>
                             </button>
                         </div>
-                        <p>Welches Wort passt zum Bild?</p>
                          {/* <p>Drag the letters to form the word for the picture.</p> */}
                     </div>
 
@@ -522,7 +513,9 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                                             isCorrect={null}
                                         />
                                     ))}
-                                    {bankLetterItems.length === 0 && isRoundCorrect === null && <p>(Alle Buchstaben platziert)</p>}
+                                    {bankLetterItems.length === 0 && isRoundCorrect === null && (
+                                        <span className="letter-bank-empty" aria-label="All letters placed" />
+                                    )}
                                 </div>
                             </div>
                          </DroppableSlot>
