@@ -36,10 +36,9 @@ import { canScrambleWord, getWordScrambleUnits } from '../utils/syllableUtils';
 // --- Game Logic Component ---
 const RACE_COMBO_UNLOCK = 9;
 const CHUNK_OPTION_COUNT = 4;
-const LOWERCASE_EXERCISE_PROBABILITY = 0.75;
 
 const getRandomMatchingLetterCase = (): MatchingLetterCase => (
-  Math.random() < LOWERCASE_EXERCISE_PROBABILITY ? 'lower' : 'upper'
+  Math.random() < 0.5 ? 'lower' : 'upper'
 );
 
 const getConflictingLetter = (letter: string): string | null => {
@@ -304,6 +303,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         }
 
         roundPayload.currentLetter = selectedLetter;
+        roundPayload.letterDisplayCase = getRandomMatchingLetterCase();
         const potentialImages = letterGroups[selectedLetter];
         if (potentialImages && potentialImages.length > 0) {
             roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
@@ -378,7 +378,11 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                 return;
             }
 
-            roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
+            roundPayload = {
+                exerciseType: newExerciseType,
+                currentLetter: selectedLetter,
+                letterDisplayCase: getRandomMatchingLetterCase(),
+            };
             const potentialImages = letterGroups[selectedLetter];
             if (potentialImages && potentialImages.length > 0) {
                 roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];
@@ -401,7 +405,11 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
                     return;
                 }
 
-                roundPayload = { exerciseType: newExerciseType, currentLetter: selectedLetter };
+                roundPayload = {
+                    exerciseType: newExerciseType,
+                    currentLetter: selectedLetter,
+                    letterDisplayCase: getRandomMatchingLetterCase(),
+                };
                 const potentialImages = letterGroups[selectedLetter];
                 if (potentialImages && potentialImages.length > 0) {
                     roundPayload.correctImageItem = potentialImages[Math.floor(Math.random() * potentialImages.length)];

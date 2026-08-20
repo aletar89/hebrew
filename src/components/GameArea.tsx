@@ -97,6 +97,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
     const [drawingEvaluation, setDrawingEvaluation] = useState<DrawingEvaluationResult | null>(null);
     const [attemptSubmitted, setAttemptSubmitted] = useState<boolean>(false);
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+    const hasAutoPlayedImagePromptRef = useRef(false);
 
     const toDisplayWord = useCallback((word: string) => word, []);
     const toDisplayLetter = useCallback((letter: string) => (
@@ -104,6 +105,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
             ? letter.toLocaleLowerCase(WORD_LOCALE)
             : letter.toLocaleUpperCase(WORD_LOCALE)
     ), [letterDisplayCase]);
+    const drawingLetter = currentLetter ? toDisplayLetter(currentLetter) : null;
 
     // Setup sensors for dnd-kit (important for touch)
     const sensors = useSensors(
@@ -124,13 +126,26 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
             setDrawingEvaluation(null);
             setAttemptSubmitted(false);
         }
-    }, [exerciseType, currentLetter, targetWord]);
+    }, [exerciseType, drawingLetter, targetWord]);
 
     useEffect(() => {
         if (isRoundCorrect !== null || exerciseType !== ExerciseType.WORD_SCRAMBLE) {
             setActiveId(null);
         }
     }, [exerciseType, isRoundCorrect]);
+
+    useEffect(() => {
+        const shouldPlayImagePrompt =
+            exerciseType === ExerciseType.PICTURE_TO_LETTER ||
+            exerciseType === ExerciseType.PICTURE_TO_WORD;
+
+        if (!shouldPlayImagePrompt || !correctImageItem || hasAutoPlayedImagePromptRef.current) {
+            return;
+        }
+
+        hasAutoPlayedImagePromptRef.current = true;
+        void playWordAudio(correctImageItem.word);
+    }, [correctImageItem, exerciseType]);
 
     // --- Effect for Auto-Submitting Word Scramble ---
     useEffect(() => {
@@ -169,14 +184,14 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
 
     // Handler for the final submission - NOW performs evaluation
     const handleSubmitDrawing = useCallback(() => {
-        if (!userDrawingCanvasRef.current || !currentLetter) {
+        if (!userDrawingCanvasRef.current || !drawingLetter) {
             console.warn("Submit drawing called without canvas or letter.");
             return;
         }
         
         console.log("Evaluating final drawing...");
         const evaluationResult: DrawingEvaluationResult = evaluateDrawing(
-           currentLetter,
+           drawingLetter,
            userDrawingCanvasRef.current
         );
         console.log("Final Evaluation Result:", evaluationResult);
@@ -200,7 +215,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
             payload: { isCorrect: evaluationResult.isCorrect }
         });
 
-    }, [dispatch, currentLetter]);
+    }, [dispatch, drawingLetter]);
 
     // Handler for clearing the drawing to retry
     const handleClearDrawing = useCallback(() => {
@@ -328,7 +343,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
                     <GuideCanvasDisplay 
                         width={CANVAS_WIDTH}
                         height={CANVAS_HEIGHT}
-                        letter={currentLetter} 
+                        letter={drawingLetter}
                     />
                     <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
                         <DrawingCanvas

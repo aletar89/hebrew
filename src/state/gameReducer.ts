@@ -124,6 +124,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 exerciseType: action.payload.exerciseType ?? state.exerciseType,
                 currentLetter: (isDrawing || isDotTracing || isRaceToPicture) ? action.payload.currentLetter ?? null : null,
                 letterDisplayCase: (
+                    action.payload.exerciseType === ExerciseType.DRAWING ||
                     action.payload.exerciseType === ExerciseType.LETTER_TO_PICTURE ||
                     action.payload.exerciseType === ExerciseType.PICTURE_TO_LETTER
                 ) ? action.payload.letterDisplayCase ?? 'upper' : null,
