@@ -36,9 +36,10 @@ import { canScrambleWord, getWordScrambleUnits } from '../utils/syllableUtils';
 // --- Game Logic Component ---
 const RACE_COMBO_UNLOCK = 9;
 const CHUNK_OPTION_COUNT = 4;
+const LOWERCASE_EXERCISE_PROBABILITY = 0.75;
 
 const getRandomMatchingLetterCase = (): MatchingLetterCase => (
-  Math.random() < 0.5 ? 'upper' : 'lower'
+  Math.random() < LOWERCASE_EXERCISE_PROBABILITY ? 'lower' : 'upper'
 );
 
 const getConflictingLetter = (letter: string): string | null => {

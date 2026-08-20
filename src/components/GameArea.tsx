@@ -98,7 +98,7 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
     const [attemptSubmitted, setAttemptSubmitted] = useState<boolean>(false);
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
-    const toDisplayWord = useCallback((word: string) => word.toLocaleUpperCase(WORD_LOCALE), []);
+    const toDisplayWord = useCallback((word: string) => word, []);
     const toDisplayLetter = useCallback((letter: string) => (
         letterDisplayCase === 'lower'
             ? letter.toLocaleLowerCase(WORD_LOCALE)
