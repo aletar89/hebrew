@@ -32,6 +32,7 @@ import { letterDotPatterns } from '../utils/letterDotPatterns';
 import { enqueueIdleTasks, preloadImage } from '../utils/preloadUtils';
 import { preloadChunkAudio, preloadWordAudio } from '../utils/audioUtils';
 import { canScrambleWord, getWordScrambleUnits } from '../utils/syllableUtils';
+import { selectMemoryItems } from '../utils/memoryUtils';
 
 // --- Game Logic Component ---
 const RACE_COMBO_UNLOCK = 9;
@@ -110,6 +111,9 @@ const isStoredRoundValid = (
     hasKnownImages(payload.imageOptions) &&
     hasKnownImages(payload.raceCorrectItems) &&
     hasKnownImages(payload.raceDistractorItems) &&
+    hasKnownImages(payload.memoryItems) &&
+    (payload.exerciseType !== ExerciseType.PICTURE_WORD_MEMORY ||
+      (payload.memoryItems?.length === 3 && new Set(payload.memoryItems.map(item => item.word.toLocaleLowerCase('de-DE'))).size === 3)) &&
     (!payload.currentChunk || readingChunks.some(chunk => chunk.id === payload.currentChunk?.id)) &&
     hasKnownChunks(payload.chunkOptions)
   );
@@ -200,6 +204,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
           [ExerciseType.RACE_TO_PICTURE]: 0,
           [ExerciseType.CHUNK_SOUND_TO_TEXT]: 20,
           [ExerciseType.CHUNK_TEXT_TO_SOUND]: 20,
+          [ExerciseType.PICTURE_WORD_MEMORY]: 10,
       };
       const totalWeight = Object.values(exerciseWeights).reduce((sum, weight) => sum + weight, 0);
       let cumulativeWeight = 0;
@@ -235,6 +240,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
         letterGroups[letter] && letterGroups[letter].length >= 3
     );
     const canDoCaseMatch = availableLetters.length >= 4;
+    const memoryCandidates = availableLetters.flatMap(letter => letterGroups[letter] ?? []);
+    const canDoMemory = new Set(memoryCandidates.map(item => item.word.toLocaleLowerCase('de-DE'))).size >= 3;
     const unlockedChunkLevels = getUnlockedChunkLevels(state.score);
     const availableChunks = readingChunks.filter(chunk => unlockedChunkLevels.includes(chunk.level));
     const canDoChunkSoundChoice = availableChunks.length >= CHUNK_OPTION_COUNT;
@@ -258,6 +265,8 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     } else if (newExerciseType === ExerciseType.DOT_TRACING && !canDoDotTracing) {
         console.warn("Cannot do Dot Tracing, falling back to Drawing...");
         newExerciseType = ExerciseType.DRAWING;
+    } else if (newExerciseType === ExerciseType.PICTURE_WORD_MEMORY && !canDoMemory) {
+        newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
     } else if (newExerciseType === ExerciseType.RACE_TO_PICTURE && !canDoRaceToPicture) {
         console.warn("Cannot do Race to Picture, falling back...");
         newExerciseType = canDoMatching ? ExerciseType.LETTER_TO_PICTURE : ExerciseType.DRAWING;
@@ -276,7 +285,9 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     let selectedLetter: string | undefined;
     let selectedImage: GermanLetterItem | undefined;
 
-    if (newExerciseType === ExerciseType.CASE_MATCH) {
+    if (newExerciseType === ExerciseType.PICTURE_WORD_MEMORY) {
+        roundPayload.memoryItems = selectMemoryItems(memoryCandidates);
+    } else if (newExerciseType === ExerciseType.CASE_MATCH) {
         const selectedLetters = shuffleArray(availableLetters).slice(0, 4);
         if (selectedLetters.length < 4) {
             dispatch({ type: 'SET_ERROR', payload: "Need at least 4 letters to start a capital/lowercase matching round." });

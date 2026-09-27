@@ -33,6 +33,7 @@ import { ClearDrawingButton } from './ClearDrawingButton.tsx';
 import { LetterCaseMatch } from './LetterCaseMatch';
 import { ChunkSoundChoice } from './ChunkSoundChoice';
 import { RaceToPictureGame } from './RaceToPictureGame';
+import { PictureWordMemory } from './PictureWordMemory';
 import { letterDotPatterns } from '../utils/letterDotPatterns';
 
 // --- Word Scramble specific components (simplified examples) ---
@@ -297,6 +298,10 @@ export const GameArea: React.FC<GameAreaProps> = ({ gameState, onImageSelect, on
         else if (isActiveFromBank && isOverBank) { /* No action needed */ }
         else { /* Unhandled */ }
     };
+
+    if (exerciseType === ExerciseType.PICTURE_WORD_MEMORY) {
+        return <PictureWordMemory items={gameState.memoryItems} onComplete={() => dispatch({ type: 'COMPLETE_MEMORY' })} />;
+    }
 
     if (exerciseType === ExerciseType.DOT_TRACING) {
         const pattern = currentLetter ? letterDotPatterns[currentLetter] : null;

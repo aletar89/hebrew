@@ -14,7 +14,8 @@ export enum ExerciseType {
     WORD_TO_PICTURE = 'word-to-picture',
     CASE_MATCH = 'case-match',
     CHUNK_SOUND_TO_TEXT = 'chunk-sound-to-text',
-    CHUNK_TEXT_TO_SOUND = 'chunk-text-to-sound'
+    CHUNK_TEXT_TO_SOUND = 'chunk-text-to-sound',
+    PICTURE_WORD_MEMORY = 'picture-word-memory'
 }
 
 export type MatchingLetterCase = 'upper' | 'lower';
@@ -35,6 +36,7 @@ export interface GameState {
     lowercaseLetters: string[];
     currentChunk: ReadingChunk | null;
     chunkOptions: ReadingChunk[];
+    memoryItems: GermanLetterItem[];
     targetWord: string | null;
     targetWordUnits: string[];
     shuffledLetters: string[];
@@ -63,6 +65,7 @@ export type GameAction =
     | { type: 'REMOVE_LETTER'; payload: { slotIndex: number } }
     | { type: 'SUBMIT_WORD'; payload: { isCorrect: boolean } }
     | { type: 'COMPLETE_CASE_MATCH' }
+    | { type: 'COMPLETE_MEMORY' }
     | { type: 'RESET_INCORRECT_WORD_ATTEMPT' }
     | { type: 'SET_ERROR'; payload: string }
     | { type: 'RESET_FEEDBACK' };
@@ -85,6 +88,7 @@ export const initialState: GameState = {
     lowercaseLetters: [],
     currentChunk: null,
     chunkOptions: [],
+    memoryItems: [],
     targetWord: null,
     targetWordUnits: [],
     shuffledLetters: [],
@@ -140,6 +144,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 lowercaseLetters: isCaseMatch ? (action.payload.lowercaseLetters ?? []) : [],
                 currentChunk: isChunkSoundChoice ? action.payload.currentChunk ?? null : null,
                 chunkOptions: isChunkSoundChoice ? action.payload.chunkOptions ?? [] : [],
+                memoryItems: action.payload.exerciseType === ExerciseType.PICTURE_WORD_MEMORY
+                    ? action.payload.memoryItems ?? [] : [],
                 targetWord: isWordScramble ? action.payload.targetWord ?? null : null,
                 targetWordUnits: isWordScramble
                     ? action.payload.targetWordUnits ?? action.payload.targetWord?.split('') ?? []
@@ -287,6 +293,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
                 isCorrect: true,
                 score: state.score + 1,
             };
+        case 'COMPLETE_MEMORY':
+            if (state.exerciseType !== ExerciseType.PICTURE_WORD_MEMORY || state.isCorrect === true) return state;
+            return { ...state, isCorrect: true, score: state.score + 1 };
         case 'RESET_INCORRECT_WORD_ATTEMPT': {
             if (
                 state.exerciseType !== ExerciseType.WORD_SCRAMBLE ||
