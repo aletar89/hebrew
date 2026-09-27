@@ -7,13 +7,13 @@ const item = (word: string, imageUrl: string): GermanLetterItem => ({
 });
 
 describe('selectMemoryItems', () => {
-  it('selects three distinct words even when an image has a duplicate word', () => {
+  it('selects four distinct words even when an image has a duplicate word', () => {
     const selected = selectMemoryItems([
       item('Apfel', '/apfel1.png'), item('APFEL', '/apfel2.png'),
       item('Banane', '/banane.png'), item('Esel', '/esel.png'), item('Fisch', '/fisch.png'),
     ]);
 
-    expect(selected).toHaveLength(3);
-    expect(new Set(selected.map(entry => entry.word.toLowerCase())).size).toBe(3);
+    expect(selected).toHaveLength(4);
+    expect(new Set(selected.map(entry => entry.word.toLowerCase())).size).toBe(4);
   });
 });

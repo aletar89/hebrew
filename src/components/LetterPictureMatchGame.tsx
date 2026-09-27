@@ -32,7 +32,7 @@ import { letterDotPatterns } from '../utils/letterDotPatterns';
 import { enqueueIdleTasks, preloadImage } from '../utils/preloadUtils';
 import { preloadChunkAudio, preloadWordAudio } from '../utils/audioUtils';
 import { canScrambleWord, getWordScrambleUnits } from '../utils/syllableUtils';
-import { selectMemoryItems } from '../utils/memoryUtils';
+import { MEMORY_PAIR_COUNT, selectMemoryItems } from '../utils/memoryUtils';
 
 // --- Game Logic Component ---
 const RACE_COMBO_UNLOCK = 9;
@@ -113,7 +113,8 @@ const isStoredRoundValid = (
     hasKnownImages(payload.raceDistractorItems) &&
     hasKnownImages(payload.memoryItems) &&
     (payload.exerciseType !== ExerciseType.PICTURE_WORD_MEMORY ||
-      (payload.memoryItems?.length === 3 && new Set(payload.memoryItems.map(item => item.word.toLocaleLowerCase('de-DE'))).size === 3)) &&
+      (payload.memoryItems?.length === MEMORY_PAIR_COUNT &&
+        new Set(payload.memoryItems.map(item => item.word.toLocaleLowerCase('de-DE'))).size === MEMORY_PAIR_COUNT)) &&
     (!payload.currentChunk || readingChunks.some(chunk => chunk.id === payload.currentChunk?.id)) &&
     hasKnownChunks(payload.chunkOptions)
   );
@@ -241,7 +242,7 @@ export function LetterPictureMatch({ letterGroups, availableLetters, isRecording
     );
     const canDoCaseMatch = availableLetters.length >= 4;
     const memoryCandidates = availableLetters.flatMap(letter => letterGroups[letter] ?? []);
-    const canDoMemory = new Set(memoryCandidates.map(item => item.word.toLocaleLowerCase('de-DE'))).size >= 3;
+    const canDoMemory = new Set(memoryCandidates.map(item => item.word.toLocaleLowerCase('de-DE'))).size >= MEMORY_PAIR_COUNT;
     const unlockedChunkLevels = getUnlockedChunkLevels(state.score);
     const availableChunks = readingChunks.filter(chunk => unlockedChunkLevels.includes(chunk.level));
     const canDoChunkSoundChoice = availableChunks.length >= CHUNK_OPTION_COUNT;
